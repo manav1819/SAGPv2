@@ -1,0 +1,58 @@
+"use client";
+
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+export interface ProgressBarProps extends React.HTMLAttributes<HTMLDivElement> {
+  value?: number;
+  max?: number;
+  animated?: boolean;
+  label?: string;
+  showValue?: boolean;
+  indicatorClassName?: string;
+}
+
+const ProgressBar = React.forwardRef<HTMLDivElement, ProgressBarProps>(
+  (
+    {
+      className,
+      value = 0,
+      max = 100,
+      animated = true,
+      label,
+      showValue = false,
+      indicatorClassName,
+      ...props
+    },
+    ref
+  ) => {
+    const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
+
+    return (
+      <div ref={ref} className={cn("w-full", className)} {...props}>
+        {(label || showValue) && (
+          <div className="flex items-center justify-between mb-2">
+            {label && <span className="text-sm font-medium text-slate-300">{label}</span>}
+            {showValue && (
+              <span className="text-sm font-medium text-slate-400">{Math.round(percentage)}%</span>
+            )}
+          </div>
+        )}
+        <div className="h-2 w-full rounded-full bg-slate-700 overflow-hidden">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all",
+              indicatorClassName || "bg-teal-600",
+              animated && "duration-500"
+            )}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+      </div>
+    );
+  }
+);
+
+ProgressBar.displayName = "ProgressBar";
+
+export { ProgressBar };

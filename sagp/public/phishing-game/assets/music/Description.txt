@@ -1,0 +1,117 @@
+
+Sound Pack #7 Includes
+======================
+
+5 Music Tracks
+----------------------
+
+• Battle_theme_prison  
+  Combat theme designed for intense prison battles.
+
+• Main_theme_prison_loopable  
+  Main prison theme, seamlessly loopable for gameplay.
+
+• Alternative_theme_prison  
+  Alternative main theme that can also work as a battle track.
+
+• Prisoners_escape_theme  
+  Music suitable for a gang of prisoners attempting an escape.
+
+• Riot_theme  
+  Music designed for a prison riot cutscene.
+
+
+------------------------------------------------
+
+Sounds Inspired by the Prison Series Packs
+------------------------------------------------
+
+• Metal_detection_frame  
+  Metal detector sound when passing through the scanning frame.
+
+• Metal_detection_frame_alarm_loopable  
+  Loopable metal detector alarm sound.
+
+• Alarm_loopable  
+  Prison emergency alarm signal.
+
+• Prison_buzzer  
+  Sound played in prison before doors open.
+
+• Prison_cell_close  
+  Prison cell closing sound.
+
+• Prison_cell_open  
+  Prison cell opening sound.
+
+• High_security_door_close  
+  Heavy high-security vault door closing sound.
+
+• High_security_door_open  
+  Heavy high-security vault door opening sound.
+
+
+Walkie-Talkie Communication
+----------------------
+
+• Walkie_talkie_talks_normal_1 / Walkie_talkie_talks_normal_2  
+  Normal guard radio communication.
+
+• Walkie_talkie_talks_anxious_1 / Walkie_talkie_talks_anxious_2  
+  Anxious guard communication when a threat is detected.
+
+• Walkie_talkie_talks_scream  
+  Radio communication with a scream, possibly a final transmission.
+
+
+Combat Sounds
+----------------------
+
+• Kick  
+  Powerful kick or heavy strike.
+
+• Punch  
+  Punch or police baton strike.
+
+• Knife_throwing  
+  Knife throwing sound.
+
+
+Special Effects
+----------------------
+
+• Laser  
+  Laser sound from a character with a robotic head.
+
+• Punch_with_electricity  
+  Punch with an electric field or energy effect.
+
+• Trap_electric_shock  
+  Electric shock trap placed by the red-haired girl.
+
+• Trap_saw  
+  Electric saw trap.
+
+• Glitch  
+  Glitch sound effect used when the red-haired girl disappears.
+
+
+------------------------------------------------
+
+Sounds Inspired by the Extra Animations Pack
+------------------------------------------------
+
+• Footstep_1 – Footstep_4  
+  Main character footsteps on a metal surface.
+
+• Footstep_alt_1 – Footstep_alt_4  
+  Alternative footsteps on ground or concrete.
+
+
+------------------------------------------------
+
+Sounds Inspired by the Effects Pack
+------------------------------------------------
+
+• Blood_1 / Blood_3  
+  Blood splatter sounds when taking damage.
