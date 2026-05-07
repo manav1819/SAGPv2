@@ -77,7 +77,7 @@ export default class Start extends Phaser.Scene {
     this.scrollSpeeds = { far: 0.08, mid: 0.22, fg: 0.55 };
 
     // Start looping menu music
-    this.menuMusic = this.sound.add('menuMusic', { loop: true, volume: 0.25 });
+    this.menuMusic = this.sound.add('menuMusic', { loop: true, volume: 0.45 });
     this.menuMusic.play();
   }
 
@@ -230,21 +230,128 @@ export default class Start extends Phaser.Scene {
   }
 
   // ----------------------------------------------------------
-  //  Called on SPACE / click — launch game immediately
-  //  Player name is read from the ?name= URL parameter (set by
-  //  the employee portal / LMS when embedding this game).
-  //  Falls back to 'Agent' if the parameter is absent.
+  //  Called on SPACE / click — show name-entry form
   // ----------------------------------------------------------
   _startGame() {
-    // Resolve employee name from URL query string
-    const params     = new URLSearchParams(window.location.search);
-    const playerName = params.get('name') || 'Agent';
+    const W = this.scale.width;
+    const H = this.scale.height;
 
-    if (this.menuMusic) this.menuMusic.stop();
+    // Dim the background slightly
+    const dimRect = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.55)
+      .setDepth(40);
 
-    this.cameras.main.fadeOut(550, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start('InboxScene', { playerName });
+    // Slide character to side
+    this.tweens.add({
+      targets: this.character,
+      x: W * 0.15,
+      duration: 400,
+      ease: 'Power2',
+    });
+
+    // DOM name-input form
+    const formHTML = `
+      <div id="name-form" style="
+        background: rgba(8, 18, 36, 0.98);
+        padding: 36px 44px;
+        border-radius: 16px;
+        border: 1.5px solid #4a9fd4;
+        text-align: center;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        min-width: 380px;
+        box-shadow: 0 0 40px rgba(74, 159, 212, 0.25);
+      ">
+        <div style="font-size:32px; margin-bottom:8px;">🛡️</div>
+        <h2 style="color:#e8f4ff; margin:0 0 6px; font-size:20px; letter-spacing:1px;">SECURITY TRAINING</h2>
+        <p style="color:#82bde0; font-size:12px; margin:0 0 24px; letter-spacing:0.5px;">Enter your name to begin the simulation</p>
+        <input
+          id="playerNameInput"
+          type="text"
+          placeholder="Your name / Participant ID"
+          maxlength="24"
+          autocomplete="off"
+          style="
+            width: 100%;
+            padding: 11px 16px;
+            background: rgba(255,255,255,0.06);
+            border: 1.5px solid #4a9fd4;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 15px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            outline: none;
+            box-sizing: border-box;
+            letter-spacing: 0.5px;
+          "
+        >
+        <button
+          id="beginBtn"
+          style="
+            width: 100%;
+            margin-top: 14px;
+            padding: 13px;
+            background: linear-gradient(135deg, #1a5276, #1a3a6b);
+            color: #ffffff;
+            border: 1.5px solid #4a9fd4;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 1px;
+          "
+        >▶ BEGIN SIMULATION</button>
+        <p style="color:#334455; font-size:10px; margin:14px 0 0; line-height:1.4;">
+          Session data is recorded for research purposes.<br>
+          Your responses help improve security awareness training.
+        </p>
+      </div>
+    `;
+
+    const nameForm = this.add.dom(W * 0.62, H * 0.5).createFromHTML(formHTML);
+    nameForm.setDepth(50);
+    nameForm.setAlpha(0);
+
+    // Slide in
+    this.tweens.add({
+      targets: nameForm,
+      alpha: 1,
+      y: H * 0.5 - 10,
+      duration: 350,
+      ease: 'Power2',
+      callbackScope: this,
+    });
+
+    // Focus the input after a beat
+    this.time.delayedCall(400, () => {
+      const inp = nameForm.getChildByID('playerNameInput');
+      if (inp) inp.focus();
+    });
+
+    const launch = () => {
+      const inp  = nameForm.getChildByID('playerNameInput');
+      const name = (inp ? inp.value.trim() : '') || 'Agent';
+
+      nameForm.destroy();
+      dimRect.destroy();
+
+      if (this.menuMusic) this.menuMusic.stop();
+
+      this.cameras.main.fadeOut(550, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.scene.start('InboxScene', { playerName: name });
+      });
+    };
+
+    // Button click
+    nameForm.addListener('click');
+    nameForm.on('click', (e) => {
+      if (e.target.id === 'beginBtn') launch();
+    });
+
+    // Enter key
+    nameForm.addListener('keydown');
+    nameForm.on('keydown', (e) => {
+      if (e.key === 'Enter') launch();
     });
   }
 }

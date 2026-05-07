@@ -97,7 +97,7 @@ export default class InboxScene extends Phaser.Scene {
     this._buildHUD(W, H);
 
     // ── Start background music ─────────────────────────────
-    this.bgMusic = this.sound.add('gameMusic', { loop: true, volume: 0.25 });
+    this.bgMusic = this.sound.add('gameMusic', { loop: true, volume: 0.38 });
     this.bgMusic.play();
 
     // ── Fade in then show first email ─────────────────────
@@ -162,7 +162,7 @@ export default class InboxScene extends Phaser.Scene {
     this._buildEmailCard(email);
     this._updateEmailCountHUD();
 
-    this.sound.play('sfxEmailOpen', { volume: 0.25 });
+    this.sound.play('sfxEmailOpen', { volume: 0.55 });
   }
 
   _buildEmailCard(email) {
@@ -179,7 +179,7 @@ export default class InboxScene extends Phaser.Scene {
 
     // ── Layout constants ───────────────────────────────────
     const CW = 570;  // card width
-    const CH = 296;  // card height
+    const CH = 380;  // card height (expanded to show full body)
     const hx = -CW / 2;
     const hy = -CH / 2;
 
@@ -190,12 +190,12 @@ export default class InboxScene extends Phaser.Scene {
     const senderName  = (nameMatch  ? nameMatch[1].trim()  : '').substring(0, 42);
     const senderEmail = (emailMatch ? emailMatch[1].trim() : senderRaw).substring(0, 50);
 
-    // ── Truncate body ──────────────────────────────────────
-    const bodyText = email.body
+    // ── Full body text ─────────────────────────────────────
+    const rawBody = email.body
       .replace(/\r?\n/g, ' ')
       .replace(/\s+/g, ' ')
-      .trim()
-      .substring(0, 210) + '…';
+      .trim();
+    const bodyText = rawBody.length > 800 ? rawBody.substring(0, 800) + '…' : rawBody;
 
     // ── Graphics: card body ────────────────────────────────
     const cardBg = this.add.graphics();
@@ -379,7 +379,7 @@ export default class InboxScene extends Phaser.Scene {
       // Character: spell on streak, normal attack otherwise
       this.character.play(this.streak >= 3 ? 'spell' : 'attack');
 
-      this.sound.play('sfxCorrect', { volume: 0.25 });
+      this.sound.play('sfxCorrect', { volume: 0.72 });
       this.advisorSprite.setTexture(`sprite${this.advisorIndex}happy`);
     } else {
       this.streak = 0;
@@ -388,8 +388,8 @@ export default class InboxScene extends Phaser.Scene {
       this._updateLivesHUD();
 
       this.character.play('hurt');
-      this.sound.play('sfxWrong',  { volume: 0.25 });
-      this.sound.play('sfxHurt',   { volume: 0.25 });
+      this.sound.play('sfxWrong',  { volume: 0.75 });
+      this.sound.play('sfxHurt',   { volume: 0.50 });
       this.cameras.main.shake(280, 0.012);
 
       this.advisorSprite.setTexture(`sprite${this.advisorIndex}sad`);
@@ -403,8 +403,8 @@ export default class InboxScene extends Phaser.Scene {
       // Game over — die after feedback
       this.time.delayedCall(1000, () => {
         this.character.play('death');
-        this.sound.play('sfxDeath', { volume: 0.25 });
-        this.sound.play('sfxAlarm', { volume: 0.25 });
+        this.sound.play('sfxDeath', { volume: 0.85 });
+        this.sound.play('sfxAlarm', { volume: 0.40 });
         this.time.delayedCall(2600, () => this._endGame(false));
       });
       return;
