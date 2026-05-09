@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/providers/auth-provider';
 import { ToastProvider } from '@/components/ui/toast';
+import { Analytics } from '@vercel/analytics/react';
+// @ts-ignore: side-effect CSS import without type declarations
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -32,6 +34,7 @@ export default function RootLayout({
             {children}
           </ToastProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
