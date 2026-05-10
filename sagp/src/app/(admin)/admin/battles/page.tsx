@@ -221,7 +221,6 @@ export default function BattlesPage() {
               <CardContent className="space-y-6">
                 <Input
                   label="Battle Name"
-                  placeholder="e.g., Q2 Security Challenge"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))

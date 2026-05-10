@@ -29,3 +29,16 @@ Creating turbopack project {
  GET /games 200 in 316ms (compile: 14ms, proxy.ts: 198ms, render: 104ms)
  GET /dashboard 200 in 394ms (compile: 13ms, proxy.ts: 264ms, render: 117ms)
  POST /dashboard 200 in 805ms (compile: 10ms, proxy.ts: 468ms, render: 327ms)
+✓ Compiled in 265ms
+✓ Compiled in 612ms
+ GET /login?redirect=%2Fdashboard 200 in 196ms (compile: 21ms, proxy.ts: 97ms, render: 78ms)
+✓ Compiled in 552ms
+ GET /login?redirect=%2Fdashboard 200 in 164ms (compile: 7ms, proxy.ts: 10ms, render: 147ms)
+ GET /login?redirect=%2Fdashboard 200 in 177ms (compile: 6ms, proxy.ts: 5ms, render: 166ms)
+ GET /login?redirect=%2Fdashboard 200 in 158ms (compile: 7ms, proxy.ts: 6ms, render: 145ms)
+ GET /login?redirect=%2Fdashboard 200 in 115ms (compile: 12ms, proxy.ts: 5ms, render: 98ms)
+ GET /login?redirect=%2Fdashboard 200 in 69ms (compile: 10ms, proxy.ts: 27ms, render: 32ms)
+ GET /login?redirect=%2Fdashboard 404 in 2.8s (compile: 1150ms, proxy.ts: 16ms, render: 1675ms)
+ GET /login?redirect=%2Fdashboard 200 in 1629ms (compile: 587ms, proxy.ts: 7ms, render: 1035ms)
+ GET /login?redirect=%2Fadmin%2Fdashboard 200 in 141ms (compile: 12ms, proxy.ts: 8ms, render: 122ms)
+ GET /login?redirect=%2Fdashboard 200 in 300ms (compile: 68ms, proxy.ts: 9ms, render: 223ms)

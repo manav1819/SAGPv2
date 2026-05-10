@@ -11,7 +11,7 @@ export default function EmployeeLayout({
   const { user } = useAuth();
 
   return (
-    <div className="sagp-app flex min-h-screen">
+    <div className="sagp-app flex min-h-screen flex-col">
       <div className="sagp-radial-center" />
       <EmployeeSidebar
         userName={user?.email || 'User'}

@@ -125,7 +125,6 @@ export default function ProfilePage() {
                 value={formData.first_name}
                 onChange={handleChange}
                 disabled={!isEditing}
-                placeholder="Enter first name"
                 className="border-slate-600 bg-slate-700 text-white disabled:opacity-60"
               />
             </div>
@@ -138,7 +137,6 @@ export default function ProfilePage() {
                 value={formData.last_name}
                 onChange={handleChange}
                 disabled={!isEditing}
-                placeholder="Enter last name"
                 className="border-slate-600 bg-slate-700 text-white disabled:opacity-60"
               />
             </div>
@@ -153,7 +151,6 @@ export default function ProfilePage() {
                 value={formData.display_name}
                 onChange={handleChange}
                 disabled={!isEditing}
-                placeholder="e.g. JohnD"
                 className="border-slate-600 bg-slate-700 text-white disabled:opacity-60"
               />
             </div>

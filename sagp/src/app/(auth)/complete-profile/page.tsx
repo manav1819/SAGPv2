@@ -179,7 +179,6 @@ export default function CompleteProfilePage() {
                   <Key className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                   <Input
                     id="joinCode" name="joinCode"
-                    placeholder="Ask your Admin for the code"
                     value={formData.joinCode} onChange={handleChange}
                     className="border-slate-600 bg-slate-700 pl-9 text-white placeholder-slate-400 uppercase tracking-widest"
                     style={{ textTransform: 'uppercase' }}

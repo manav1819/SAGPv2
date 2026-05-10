@@ -38,13 +38,12 @@ import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
 
 // Basic input
-<Input placeholder="Enter email" />
+<Input />
 
 // With label
 <Input
   label="Email Address"
   type="email"
-  placeholder="user@example.com"
 />
 
 // With error
@@ -128,7 +127,7 @@ import { Badge } from "@/components/ui";
 import { Select } from "@/components/ui";
 
 // Basic select
-<Select placeholder="Select an option">
+<Select>
   <option value="option1">Option 1</option>
   <option value="option2">Option 2</option>
 </Select>

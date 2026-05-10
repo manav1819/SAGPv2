@@ -164,7 +164,6 @@ export default function AuditLogPage() {
                 <div className="relative lg:col-span-2">
                   <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                   <Input
-                    placeholder="Search by actor or entity..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"

@@ -137,7 +137,6 @@ export function MyComponent() {
         <Input
           label="Email"
           type="email"
-          placeholder="user@example.com"
         />
         <Button
           variant="primary"

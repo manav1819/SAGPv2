@@ -79,7 +79,6 @@ export default function CreateModulePage() {
             <CardContent className="space-y-6">
               <Input
                 label="Module Title"
-                placeholder="e.g., Advanced Phishing Detection"
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
@@ -89,7 +88,6 @@ export default function CreateModulePage() {
                 <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
                 <textarea
                   className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-base text-slate-100 placeholder-slate-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-                  placeholder="Describe what users will learn..."
                   rows={4}
                   value={formData.description}
                   onChange={handleInputChange}
@@ -238,7 +236,6 @@ export default function CreateModulePage() {
                 rows={10}
                 value={contentJson}
                 onChange={(e) => setContentJson(e.target.value)}
-                placeholder='{"questions": [...]}'
               />
             </CardContent>
           </Card>

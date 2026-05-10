@@ -132,7 +132,7 @@ export default function SuperadminAdminsPage() {
               Admin Email <span className="text-red-400">*</span>
             </label>
             <Input
-              name="email" type="email" placeholder="admin@company.com"
+              name="email" type="email"
               value={formData.email} onChange={handleChange}
               className="border-slate-600 bg-slate-700 text-white"
             />
@@ -144,7 +144,7 @@ export default function SuperadminAdminsPage() {
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-300">First Name</label>
               <Input
-                name="firstName" placeholder="Jane"
+                name="firstName"
                 value={formData.firstName} onChange={handleChange}
                 className="border-slate-600 bg-slate-700 text-white"
               />
@@ -152,7 +152,7 @@ export default function SuperadminAdminsPage() {
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-300">Last Name</label>
               <Input
-                name="lastName" placeholder="Smith"
+                name="lastName"
                 value={formData.lastName} onChange={handleChange}
                 className="border-slate-600 bg-slate-700 text-white"
               />

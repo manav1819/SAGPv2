@@ -146,7 +146,6 @@ export default function ModulesPage() {
         <Search className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
         <Input
           type="text"
-          placeholder="Search modules..."
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);

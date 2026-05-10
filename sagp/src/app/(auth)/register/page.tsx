@@ -152,7 +152,7 @@ export default function RegisterPage() {
               <label htmlFor="firstName" className="mb-1 block text-sm font-medium text-slate-300">First Name</label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                <Input id="firstName" name="firstName" placeholder="John"
+                <Input id="firstName" name="firstName"
                   value={formData.firstName} onChange={handleChange}
                   className="border-slate-600 bg-slate-700 pl-9 text-white placeholder-slate-400" />
               </div>
@@ -160,7 +160,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <label htmlFor="lastName" className="mb-1 block text-sm font-medium text-slate-300">Last Name</label>
-              <Input id="lastName" name="lastName" placeholder="Doe"
+              <Input id="lastName" name="lastName"
                 value={formData.lastName} onChange={handleChange}
                 className="border-slate-600 bg-slate-700 text-white placeholder-slate-400" />
               {errors.lastName && <p className="mt-1 text-xs text-red-400">{errors.lastName}</p>}
@@ -177,7 +177,7 @@ export default function RegisterPage() {
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-              <Input id="email" name="email" type="email" placeholder="your@company.com"
+              <Input id="email" name="email" type="email"
                 value={formData.email} onChange={handleChange}
                 className="border-slate-600 bg-slate-700 pl-9 text-white placeholder-slate-400" />
             </div>
@@ -215,7 +215,6 @@ export default function RegisterPage() {
               <Key className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
               <Input
                 id="joinCode" name="joinCode"
-                placeholder="Ask your Admin for the code"
                 value={formData.joinCode} onChange={handleChange}
                 className="border-slate-600 bg-slate-700 pl-9 text-white placeholder-slate-400 uppercase tracking-widest"
                 style={{ textTransform: 'uppercase' }}
@@ -238,7 +237,7 @@ export default function RegisterPage() {
             <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-300">Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-              <Input id="password" name="password" type="password" placeholder="Min. 8 characters"
+              <Input id="password" name="password" type="password"
                 value={formData.password} onChange={handleChange}
                 className="border-slate-600 bg-slate-700 pl-9 text-white placeholder-slate-400" />
             </div>
@@ -250,7 +249,7 @@ export default function RegisterPage() {
             <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-slate-300">Confirm Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-              <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="••••••••"
+              <Input id="confirmPassword" name="confirmPassword" type="password"
                 value={formData.confirmPassword} onChange={handleChange}
                 className="border-slate-600 bg-slate-700 pl-9 text-white placeholder-slate-400" />
             </div>

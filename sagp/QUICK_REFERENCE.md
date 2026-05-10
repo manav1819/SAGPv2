@@ -58,7 +58,7 @@ import { cn } from "@/lib/utils";
 
 ### Input
 ```tsx
-<Input placeholder="Text" />
+<Input />
 <Input label="Email" type="email" />
 <Input label="Password" error="Must be 8+ chars" />
 <Input helperText="Help text" />

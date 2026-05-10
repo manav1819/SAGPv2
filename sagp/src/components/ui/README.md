@@ -55,7 +55,6 @@ import { Input } from "@/components/ui";
 <Input
   label="Email"
   type="email"
-  placeholder="user@example.com"
   error="Invalid email format"
 />
 ```

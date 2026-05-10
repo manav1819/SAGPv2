@@ -49,61 +49,53 @@ export function EmployeeSidebar({
   };
 
   return (
-    <aside className="sagp-neon-card sticky top-0 z-20 h-screen w-64 shrink-0 overflow-y-auto border-y-0 border-l-0 p-6">
-      <Link href="/dashboard" className="sagp-brand mb-8">
-        <div className="sagp-brand-mark">
-          <ShieldCheck className="h-5 w-5" />
-        </div>
-        <span className="sagp-brand-text sagp-neon-text">SAGP</span>
-      </Link>
-
-      <div className="sagp-purple-row mb-8 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="sagp-stat-label">Current Streak</p>
-            <p className="sagp-stat-value">{streak}</p>
-            <p className="sagp-stat-hint">days</p>
+    <header className="sagp-topbar">
+      <div className="sagp-topbar-inner">
+        <Link href="/dashboard" className="sagp-brand shrink-0">
+          <div className="sagp-brand-mark">
+            <ShieldCheck className="h-5 w-5" />
           </div>
-          <Flame className="h-10 w-10 sagp-text-green" />
+          <span className="sagp-brand-text sagp-neon-text">SAGP</span>
+        </Link>
+
+        <nav className="sagp-horizontal-nav">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname.startsWith(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`sagp-nav-link ${isActive ? 'is-active' : ''}`}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="sagp-horizontal-actions">
+          <div className="sagp-badge sagp-badge-purple">
+            <Flame className="h-3.5 w-3.5" />
+            {streak} day streak
+          </div>
+          {activeBattle && (
+            <div className="sagp-badge sagp-badge-green">
+              <Swords className="h-3.5 w-3.5" />
+              Battle active
+            </div>
+          )}
+          <div className="hidden max-w-52 truncate text-sm sagp-text-muted lg:block">
+            {userName}
+          </div>
+          <Button onClick={handleLogout} variant="ghost" size="sm">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
-
-      {activeBattle && (
-        <div className="sagp-cyan-row mb-6 flex items-center gap-2">
-          <Swords className="h-4 w-4 sagp-text-cyan" />
-          <span className="text-sm font-medium sagp-text-cyan">Battle Active</span>
-        </div>
-      )}
-
-      <nav className="mb-8 space-y-1">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname.startsWith(item.href);
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`sagp-nav-link w-full ${isActive ? 'is-active' : ''}`}
-            >
-              <Icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="mb-6 border-t border-cyan-300/15" />
-
-      <div className="sagp-glass-row mb-4">
-        <p className="sagp-stat-label">Logged in as</p>
-        <p className="truncate font-medium text-white">{userName}</p>
-      </div>
-
-      <Button onClick={handleLogout} variant="ghost" className="w-full">
-        <LogOut className="mr-2 h-4 w-4" />
-        Logout
-      </Button>
-    </aside>
+    </header>
   );
 }

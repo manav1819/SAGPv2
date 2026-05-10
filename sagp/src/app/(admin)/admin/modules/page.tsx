@@ -114,7 +114,6 @@ export default function ModulesPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                   <Input
-                    placeholder="Search modules..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"

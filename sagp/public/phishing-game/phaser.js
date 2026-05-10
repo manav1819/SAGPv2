@@ -50255,7 +50255,7 @@ var DOMElement = new Class({
      * Assume the following html is stored in a file called `loginform.html`:
      *
      * ```html
-     * <input type="text" name="nameField" placeholder="Enter your name" style="font-size: 32px">
+     * <input type="text" name="nameField" style="font-size: 32px">
      * <input type="button" name="playButton" value="Let's Play" style="font-size: 32px">
      * ```
      *
@@ -50303,7 +50303,7 @@ var DOMElement = new Class({
      *
      * ```javascript
      * let form = `
-     * <input type="text" name="nameField" placeholder="Enter your name" style="font-size: 32px">
+     * <input type="text" name="nameField" style="font-size: 32px">
      * <input type="button" name="playButton" value="Let's Play" style="font-size: 32px">
      * `;
      * ```
