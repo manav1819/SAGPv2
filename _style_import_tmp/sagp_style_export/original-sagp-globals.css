@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0a1a;
+  --surface: #0f0f2e;
+  --cyan: #00f5ff;
+  --green: #39ff14;
+  --purple: #bf5fff;
+  --danger: #ff3b81;
+  --warning: #ffd166;
+  --radius: 4px;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-cyber-cyan: var(--cyan);
+  --color-cyber-green: var(--green);
+  --color-cyber-purple: var(--purple);
+  --font-heading: var(--font-orbitron);
+  --font-mono: var(--font-ibm-plex-mono);
+  --font-ui: var(--font-exo-2);
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(0, 245, 255, 0.14), transparent 32rem),
+    radial-gradient(circle at 80% 12%, rgba(191, 95, 255, 0.16), transparent 28rem),
+    linear-gradient(135deg, #0a0a1a 0%, #070713 60%, #0f0f2e 100%);
+  color: #e6fbff;
+  font-family: var(--font-exo-2), system-ui, sans-serif;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(0, 245, 255, 0.25);
+  color: white;
+}
+
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(0, 245, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.scanlines::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.026) 0px,
+    rgba(255,255,255,0.026) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  mix-blend-mode: overlay;
+}
+
+.neon-card {
+  border: 1px solid rgba(0, 245, 255, 0.24);
+  background: linear-gradient(135deg, rgba(15,15,46,0.86), rgba(10,10,26,0.72));
+  box-shadow: 0 0 0 1px rgba(57,255,20,0.04), 0 0 32px rgba(0,245,255,0.10), inset 0 0 24px rgba(191,95,255,0.05);
+  backdrop-filter: blur(14px);
+  border-radius: 4px;
+}
+
+.neon-text {
+  text-shadow: 0 0 14px rgba(0, 245, 255, 0.65), 0 0 28px rgba(191, 95, 255, 0.28);
+}
+
+.glitch {
+  position: relative;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.glitch::before {
+  color: var(--cyan);
+  transform: translate(1px, 0);
+  clip-path: inset(0 0 52% 0);
+}
+
+.glitch::after {
+  color: var(--purple);
+  transform: translate(-1px, 0);
+  clip-path: inset(48% 0 0 0);
+}
+
+.cyber-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cyber-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 245, 255, 0.35);
+  border-radius: 4px;
+}

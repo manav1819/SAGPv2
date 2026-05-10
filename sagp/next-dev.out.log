@@ -1,0 +1,22 @@
+
+> sagp@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.56.1:3000
+- Environments: .env
+
+✓ Starting...
+Creating turbopack project {
+  dir: 'D:\\Dhruvil\\Sheridan college Subject Lecture notes\\SEM 7\\INFO36206 Cyber Security Capstone (Phase 1)\\sagp\\SAGPv2\\sagp',
+  testMode: true
+}
+✓ Ready in 19.1s
+○ Compiling /login ...
+ GET /login 200 in 14.7s (compile: 14.0s, proxy.ts: 106ms, render: 633ms)
+ GET /login?redirect=%2F 200 in 250ms (compile: 16ms, proxy.ts: 25ms, render: 208ms)
+ POST /dashboard?redirect=%2F 200 in 1264ms (compile: 661ms, proxy.ts: 209ms, render: 394ms)
+ GET /dashboard 200 in 256ms (compile: 8ms, proxy.ts: 195ms, render: 52ms)
+ GET /modules 200 in 1417ms (compile: 1027ms, proxy.ts: 347ms, render: 43ms)
+ GET /dashboard 200 in 291ms (compile: 7ms, proxy.ts: 248ms, render: 36ms)

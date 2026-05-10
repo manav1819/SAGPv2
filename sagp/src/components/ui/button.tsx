@@ -6,25 +6,20 @@ import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed",
+  "sagp-btn",
   {
     variants: {
       variant: {
-        primary:
-          "bg-teal-600 text-white hover:bg-teal-700 active:bg-teal-800 focus-visible:ring-offset-slate-900",
-        secondary:
-          "bg-slate-700 text-slate-100 hover:bg-slate-600 active:bg-slate-800 focus-visible:ring-offset-slate-900",
-        destructive:
-          "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 focus-visible:ring-offset-slate-900",
-        ghost:
-          "text-slate-300 hover:bg-slate-800 active:bg-slate-700 focus-visible:ring-offset-slate-900",
-        outline:
-          "border border-slate-600 text-slate-300 hover:bg-slate-800 active:bg-slate-700 focus-visible:ring-offset-slate-900",
+        primary: "sagp-btn-primary",
+        secondary: "sagp-btn-secondary",
+        destructive: "sagp-btn-danger",
+        ghost: "sagp-btn-ghost",
+        outline: "sagp-btn-secondary",
       },
       size: {
-        sm: "h-8 px-3 text-sm",
-        md: "h-10 px-4 text-base",
-        lg: "h-12 px-6 text-lg",
+        sm: "sagp-btn-sm",
+        md: "",
+        lg: "sagp-btn-lg",
       },
     },
     defaultVariants: {

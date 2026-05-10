@@ -25,10 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body
-        className="antialiased bg-slate-900 text-slate-50"
-        style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
-      >
+      <body className="sagp-body sagp-scanlines sagp-cyber-grid antialiased">
         <AuthProvider>
           <ToastProvider>
             {children}

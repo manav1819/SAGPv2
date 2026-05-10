@@ -1,11 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800;900&display=swap');
 @import "tailwindcss";
+@import "./sagp-style-export.css";
 
 :root {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --teal-primary: #0d9488;
-  --slate-dark: #1e293b;
-  --slate-darker: #0f172a;
+  --background: var(--sagp-bg);
+  --foreground: var(--sagp-text);
+  --teal-primary: var(--sagp-cyan);
+  --slate-dark: var(--sagp-surface);
+  --slate-darker: var(--sagp-bg-deep);
 }
 
 @theme inline {
@@ -26,9 +28,135 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--sagp-bg);
+  color: var(--sagp-text);
+  font-family: var(--sagp-font-body);
+}
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+a {
+  transition: color var(--sagp-transition), background var(--sagp-transition), border-color var(--sagp-transition);
+}
+
+/* Compatibility layer for the existing Tailwind-heavy SAGP v2 screens. */
+.bg-slate-900,
+.bg-slate-800,
+.bg-slate-800\/50,
+.bg-slate-800\/30,
+.bg-slate-700,
+.bg-slate-700\/50,
+.bg-slate-700\/30,
+.from-slate-900,
+.from-slate-800,
+.from-slate-700,
+.via-slate-800,
+.to-slate-900,
+.to-slate-800,
+.to-slate-700 {
+  background: linear-gradient(135deg, rgba(15, 15, 46, 0.86), rgba(10, 10, 26, 0.72)) !important;
+}
+
+.bg-teal-600,
+.bg-teal-500,
+.from-teal-400,
+.to-teal-600 {
+  background: var(--sagp-cyan) !important;
+  color: #000 !important;
+  box-shadow: var(--sagp-shadow-cyan);
+}
+
+.bg-purple-600 {
+  background: rgba(191, 95, 255, 0.18) !important;
+  color: var(--sagp-purple) !important;
+}
+
+.text-teal-400,
+.text-teal-300,
+.text-blue-600 {
+  color: var(--sagp-cyan) !important;
+}
+
+.text-purple-400,
+.text-purple-300,
+.text-purple-600 {
+  color: var(--sagp-purple) !important;
+}
+
+.text-green-600,
+.text-green-300,
+.text-green-200 {
+  color: var(--sagp-green) !important;
+}
+
+.text-slate-100,
+.text-slate-200,
+.text-slate-300 {
+  color: var(--sagp-text) !important;
+}
+
+.text-slate-400,
+.text-slate-500,
+.text-gray-600 {
+  color: var(--sagp-text-muted) !important;
+}
+
+.border-slate-700,
+.border-slate-600,
+.border-teal-600,
+.border-teal-500,
+.border-purple-500\/30 {
+  border-color: var(--sagp-border-cyan) !important;
+}
+
+.rounded-lg,
+.rounded-xl {
+  border-radius: var(--sagp-radius) !important;
+}
+
+.shadow-lg,
+.shadow-2xl {
+  box-shadow: var(--sagp-shadow-card) !important;
+}
+
+.neon-card {
+  border: 1px solid var(--sagp-border-cyan);
+  background: linear-gradient(135deg, rgba(15, 15, 46, 0.86), rgba(10, 10, 26, 0.72));
+  box-shadow: var(--sagp-shadow-card);
+  backdrop-filter: blur(14px);
+  border-radius: var(--sagp-radius);
+}
+
+.neon-text {
+  text-shadow: var(--sagp-shadow-cyan), 0 0 28px rgba(191, 95, 255, 0.28);
+}
+
+.font-heading {
+  font-family: var(--sagp-font-heading);
+}
+
+.font-mono {
+  font-family: var(--sagp-font-mono);
+}
+
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(0, 245, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.scanlines::before {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0px, rgba(255, 255, 255, 0.026) 1px, transparent 1px, transparent 4px);
+  mix-blend-mode: overlay;
 }
 
 /* Scrollbar styling */

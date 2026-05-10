@@ -4,7 +4,8 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4">
+    <div className="sagp-login-page sagp-app px-4">
+      <div className="sagp-radial-center" />
       <div className="w-full max-w-md">
         {children}
       </div>

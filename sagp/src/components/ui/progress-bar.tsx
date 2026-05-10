@@ -32,17 +32,17 @@ const ProgressBar = React.forwardRef<HTMLDivElement, ProgressBarProps>(
       <div ref={ref} className={cn("w-full", className)} {...props}>
         {(label || showValue) && (
           <div className="flex items-center justify-between mb-2">
-            {label && <span className="text-sm font-medium text-slate-300">{label}</span>}
+            {label && <span className="text-sm font-medium sagp-text-muted">{label}</span>}
             {showValue && (
-              <span className="text-sm font-medium text-slate-400">{Math.round(percentage)}%</span>
+              <span className="text-sm font-medium sagp-text-muted">{Math.round(percentage)}%</span>
             )}
           </div>
         )}
-        <div className="h-2 w-full rounded-full bg-slate-700 overflow-hidden">
+        <div className="sagp-progress w-full">
           <div
             className={cn(
-              "h-full rounded-full transition-all",
-              indicatorClassName || "bg-teal-600",
+              "sagp-progress-bar",
+              indicatorClassName || "",
               animated && "duration-500"
             )}
             style={{ width: `${percentage}%` }}

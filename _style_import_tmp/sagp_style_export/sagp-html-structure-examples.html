@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SAGP Style Export Examples</title>
+  <link rel="stylesheet" href="./sagp-style-export.css" />
+</head>
+<body class="sagp-body sagp-scanlines sagp-cyber-grid">
+  <div class="sagp-app">
+    <!-- Desktop Navbar -->
+    <header class="sagp-navbar">
+      <div class="sagp-navbar-inner">
+        <a class="sagp-brand" href="#">
+          <span class="sagp-brand-mark">🛡️</span>
+          <span class="sagp-brand-text sagp-neon-text">SAGP</span>
+        </a>
+        <nav class="sagp-nav-links" aria-label="Primary navigation">
+          <a class="sagp-nav-link is-active" href="#">Dashboard</a>
+          <a class="sagp-nav-link" href="#">Modules</a>
+          <a class="sagp-nav-link" href="#">Board</a>
+          <a class="sagp-nav-link" href="#">Profile</a>
+          <a class="sagp-nav-link" href="#">Admin</a>
+        </nav>
+        <div class="sagp-nav-actions">
+          <a class="sagp-notification-btn" href="#" aria-label="Notifications">🔔<span class="sagp-notification-count">3</span></a>
+          <button class="sagp-btn sagp-btn-ghost sagp-btn-sm">Exit</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Mobile Bottom Tabs -->
+    <nav class="sagp-mobile-tabs" aria-label="Mobile navigation">
+      <div class="sagp-mobile-tabs-grid">
+        <a class="sagp-mobile-tab is-active" href="#">⌂<span>Dashboard</span></a>
+        <a class="sagp-mobile-tab" href="#">🎮<span>Modules</span></a>
+        <a class="sagp-mobile-tab" href="#">🏆<span>Board</span></a>
+        <a class="sagp-mobile-tab" href="#">👤<span>Profile</span></a>
+        <a class="sagp-mobile-tab" href="#">⚙<span>Admin</span></a>
+      </div>
+    </nav>
+
+    <main class="sagp-main sagp-container sagp-stack">
+      <!-- Hero -->
+      <section class="sagp-neon-card sagp-hero">
+        <span class="sagp-badge sagp-badge-green">Mission Ready</span>
+        <h1 class="sagp-hero-title sagp-neon-text">Train like a cyber operative.</h1>
+        <p class="sagp-hero-copy">Gamified security awareness training with real-time risk scoring, badges, certificates, and enterprise compliance evidence.</p>
+        <div class="sagp-hero-actions">
+          <a class="sagp-btn sagp-btn-primary sagp-btn-lg" href="#">Start Training</a>
+          <a class="sagp-btn sagp-btn-secondary sagp-btn-lg" href="#">View Leaderboard</a>
+        </div>
+      </section>
+
+      <!-- Stat Cards -->
+      <section class="sagp-grid-4">
+        <article class="sagp-card">
+          <div class="sagp-stat-card-content">
+            <span class="sagp-icon-tile">🎯</span>
+            <div>
+              <p class="sagp-stat-label">Progress</p>
+              <p class="sagp-stat-value">74%</p>
+              <p class="sagp-stat-hint">Across assigned modules</p>
+            </div>
+          </div>
+        </article>
+        <article class="sagp-card"><div class="sagp-stat-card-content"><span class="sagp-icon-tile">⚡</span><div><p class="sagp-stat-label">XP</p><p class="sagp-stat-value">12,400</p><p class="sagp-stat-hint">Lifetime points</p></div></div></article>
+        <article class="sagp-card"><div class="sagp-stat-card-content"><span class="sagp-icon-tile">🏅</span><div><p class="sagp-stat-label">Badges</p><p class="sagp-stat-value">18</p><p class="sagp-stat-hint">Unlocked achievements</p></div></div></article>
+        <article class="sagp-card"><div class="sagp-stat-card-content"><span class="sagp-icon-tile">🛡</span><div><p class="sagp-stat-label">Risk</p><p class="sagp-stat-value">31</p><p class="sagp-stat-hint">Lower is better</p></div></div></article>
+      </section>
+
+      <!-- Filter Bar -->
+      <section class="sagp-neon-card sagp-filter-bar">
+        <label class="sagp-search-wrap">
+          <span class="sagp-search-icon">⌕</span>
+          <input class="sagp-input" placeholder="Search modules, risks, or compliance tags..." />
+        </label>
+        <select class="sagp-select" aria-label="Difficulty">
+          <option>All difficulty</option>
+          <option>Beginner</option>
+          <option>Intermediate</option>
+          <option>Advanced</option>
+        </select>
+      </section>
+
+      <!-- Module Grid -->
+      <section class="sagp-module-grid">
+        <a class="sagp-module-card-link" href="#">
+          <article class="sagp-card sagp-module-card">
+            <div class="sagp-card-header">
+              <div class="sagp-module-card-top">
+                <span class="sagp-badge">Beginner</span>
+                <span class="sagp-text-soft sagp-mono">25m</span>
+              </div>
+              <h3 class="sagp-card-title">Password Security Best Practices</h3>
+              <p class="sagp-card-description">Build stronger authentication habits through puzzles, mazes, and rapid-fire choices.</p>
+            </div>
+            <div class="sagp-card-content">
+              <div class="sagp-module-card-meta"><span>3 games</span><span>60% complete</span></div>
+              <div class="sagp-progress"><div class="sagp-progress-bar" style="--progress: 60%"></div></div>
+              <div class="sagp-module-tag-row">
+                <span class="sagp-badge sagp-badge-purple">SOC 2</span>
+                <span class="sagp-badge sagp-badge-purple">ISO 27001</span>
+              </div>
+              <span class="sagp-enter-module">Enter module →</span>
+            </div>
+          </article>
+        </a>
+      </section>
+
+      <!-- Game Shell -->
+      <section class="sagp-game-shell-grid">
+        <div class="sagp-neon-card sagp-game-canvas-wrap">
+          <div class="sagp-game-mount sagp-flex-center sagp-text-muted">Phaser game canvas mount</div>
+        </div>
+        <aside class="sagp-card">
+          <div class="sagp-card-header"><h3 class="sagp-card-title">Post-game results</h3></div>
+          <div class="sagp-card-content sagp-stack-sm">
+            <p class="sagp-game-result-score">920</p>
+            <p class="sagp-text-muted">Score saved successfully. Badge check complete.</p>
+            <div class="sagp-result-grid">
+              <div class="sagp-result-box-cyan"><span class="sagp-result-label">Accuracy</span>94%</div>
+              <div class="sagp-result-box-green"><span class="sagp-result-label">XP</span>+180</div>
+            </div>
+            <button class="sagp-btn sagp-btn-secondary sagp-btn-full">Play Again</button>
+          </div>
+        </aside>
+      </section>
+
+      <!-- Leaderboard Table -->
+      <section class="sagp-card">
+        <div class="sagp-card-header"><h3 class="sagp-card-title">Scoreboard</h3></div>
+        <div class="sagp-card-content sagp-table-wrap">
+          <table class="sagp-table">
+            <thead><tr><th>Rank</th><th>User</th><th>Game</th><th>Score</th><th>XP</th><th>Period</th></tr></thead>
+            <tbody>
+              <tr><td class="sagp-rank">#1</td><td><span class="sagp-table-title">Cyber Recruit</span><div class="sagp-table-subtitle">Security</div></td><td>Phishing Lab</td><td>950</td><td class="sagp-text-cyan">200</td><td><span class="sagp-badge">Weekly</span></td></tr>
+              <tr><td class="sagp-rank">#2</td><td><span class="sagp-table-title">Blue Team Analyst</span><div class="sagp-table-subtitle">IT</div></td><td>Password Maze</td><td>910</td><td class="sagp-text-cyan">180</td><td><span class="sagp-badge">Weekly</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
