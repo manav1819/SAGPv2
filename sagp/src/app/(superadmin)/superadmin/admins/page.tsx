@@ -102,7 +102,7 @@ export default function SuperadminAdminsPage() {
 
         {success && (
           <div className="mb-4 flex items-start gap-2 rounded-lg bg-teal-900/30 border border-teal-500/30 p-4">
-            <Mail className="mt-0.5 h-4 w-4 text-teal-400 flex-shrink-0" />
+            <Mail className="mt-0.5 h-4 w-4 text-teal-400 shrink-0" />
             <p className="text-sm text-teal-300">{success}</p>
           </div>
         )}

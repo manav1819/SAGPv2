@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient }              from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { updateLeaderboard } from '@/engines/gamification/leaderboard';
 
 // Service-role client — bypasses RLS for writes
 const serviceClient = createClient(
@@ -101,6 +102,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Could not resolve module' }, { status: 500 });
     }
 
+    const { data: moduleRecord } = await serviceClient
+      .from('modules')
+      .select('title, points_value')
+      .eq('id', moduleId)
+      .maybeSingle();
+
     // 5. Determine time_bucket based on average response time
     const avgSecs = (sessionData.avgResponseTimeMs || 0) / 1000;
     const timeBucket: 'less' | 'medium' | 'more' =
@@ -192,7 +199,41 @@ export async function POST(request: NextRequest) {
         }
       );
 
-    return NextResponse.json({ success: true, passed: won, sessionId: dbSessionId });
+    if (won) {
+      const { data: firstStepsBadge } = await serviceClient
+        .from('badges')
+        .select('id')
+        .eq('name', 'First Steps')
+        .maybeSingle();
+
+      if (firstStepsBadge?.id) {
+        await serviceClient
+          .from('user_badges')
+          .upsert(
+            {
+              user_id: user.id,
+              badge_id: firstStepsBadge.id,
+              org_id: orgId,
+            },
+            { onConflict: 'user_id,badge_id', ignoreDuplicates: true }
+          );
+      }
+    }
+
+    await updateLeaderboard(user.id, orgId);
+
+    return NextResponse.json({
+      success: true,
+      passed: won,
+      sessionId: dbSessionId,
+      pointsEarned: sessionData.finalScore,
+      module: {
+        id: moduleId,
+        title: moduleRecord?.title || 'Phishing Simulator',
+        points_value: moduleRecord?.points_value || 0,
+      },
+      completedAt: new Date().toISOString(),
+    });
   } catch (err) {
     console.error('[phishing/complete] unexpected error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

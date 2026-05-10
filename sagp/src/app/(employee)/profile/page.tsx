@@ -88,7 +88,7 @@ export default function ProfilePage() {
         {/* Avatar + name card */}
         <Card className="border-slate-700 bg-slate-800">
           <div className="flex items-center gap-4 p-6 border-b border-slate-700">
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-teal-600">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-linear-to-br from-teal-400 to-teal-600">
               <User className="h-8 w-8 text-white" />
             </div>
             <div>

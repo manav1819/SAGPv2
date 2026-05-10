@@ -2,3 +2,17 @@
 # Obsidian vault (local only)
 .obsidian/
 Notes/
+
+# dependencies and generated output
+node_modules/
+.next/
+out/
+build/
+
+# local env / logs
+.env*
+*.log
+*.tsbuildinfo
+
+# temporary exports
+_style_import_tmp/

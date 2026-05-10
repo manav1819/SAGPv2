@@ -7,7 +7,7 @@ import SSOCallbackContent from './sso-callback-content';
 
 function SSOCallbackLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
       <Card className="border-slate-700 bg-slate-800">
         <div className="flex flex-col items-center justify-center p-8">
           <Loader2 className="h-10 w-10 animate-spin text-teal-500" />

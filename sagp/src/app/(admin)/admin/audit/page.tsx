@@ -131,7 +131,6 @@ export default function AuditLogPage() {
   const [selectedAction, setSelectedAction] = useState('All');
   const [selectedEntity, setSelectedEntity] = useState('All');
   const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
 
   const filteredLogs = mockAuditLogs.filter((log) => {
     const matchesSearch = log.actor.toLowerCase().includes(searchTerm.toLowerCase()) ||

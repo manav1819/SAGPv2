@@ -1,7 +1,15 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+interface BadgeRow {
+  id: string;
+  name: string;
+  description: string | null;
+  icon_url: string | null;
+  badge_type: string;
+}
+
+export async function GET() {
   try {
     const client = await createServerSupabaseClient();
 
@@ -36,7 +44,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id);
 
     const badges = userBadges?.map((ub) => ({
-      ...(ub.badges as any),
+      ...(ub.badges as BadgeRow),
       earned_at: ub.earned_at,
     })) || [];
 

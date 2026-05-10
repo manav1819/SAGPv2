@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { AdminTopBar } from '@/components/admin/admin-top-bar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge-ui';

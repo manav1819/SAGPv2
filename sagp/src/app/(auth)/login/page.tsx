@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { Mail, Lock, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -92,7 +92,6 @@ export default function LoginPage() {
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3 h-5 w-5 sagp-text-soft" />
               <Input
                 id="email"
                 type="email"
@@ -112,7 +111,6 @@ export default function LoginPage() {
               Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 sagp-text-soft" />
               <Input
                 id="password"
                 type="password"

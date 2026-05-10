@@ -29,7 +29,7 @@ export default function OAuthConsentPage() {
   }, []);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
         <p className="text-slate-300">Redirecting to Google…</p>

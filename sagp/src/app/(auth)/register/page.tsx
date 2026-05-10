@@ -133,7 +133,7 @@ export default function RegisterPage() {
       <div className="p-8">
         {/* Logo */}
         <div className="mb-6 flex items-center justify-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-teal-400 to-teal-600">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-linear-to-br from-teal-400 to-teal-600">
             <span className="text-lg font-bold text-white">🛡️</span>
           </div>
           <h1 className="ml-3 text-2xl font-bold text-white">SAGP</h1>

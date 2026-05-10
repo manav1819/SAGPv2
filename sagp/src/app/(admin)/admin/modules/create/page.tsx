@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge-ui';
 import { Eye, Save } from 'lucide-react';
 
 const CATEGORIES = ['phishing', 'passwords', 'social_engineering', 'malware', 'insider_threat', 'device_security', 'data_handling'];
@@ -34,8 +33,6 @@ export default function CreateModulePage() {
   });
 
   const [contentJson, setContentJson] = useState('{}');
-  const [selectedComplianceTab, setSelectedComplianceTab] = useState('NIST');
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));

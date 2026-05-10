@@ -85,14 +85,6 @@ export default function GamesPage() {
           </Card>
         ))}
 
-        {/* Placeholder for future games */}
-        <Card className="flex min-h-[260px] items-center justify-center border-dashed border-slate-600 bg-slate-800/40 p-6">
-          <div className="text-center">
-            <Gamepad2 className="mx-auto mb-3 h-10 w-10 text-slate-600" />
-            <p className="text-sm font-medium text-slate-500">More games coming soon</p>
-            <p className="mt-1 text-xs text-slate-600">Stay tuned for new training scenarios</p>
-          </div>
-        </Card>
       </div>
     </div>
   );

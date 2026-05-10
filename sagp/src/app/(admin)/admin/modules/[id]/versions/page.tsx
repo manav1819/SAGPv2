@@ -60,7 +60,7 @@ function formatDate(dateStr: string) {
   });
 }
 
-export default function VersionsPage({ params }: { params: { id: string } }) {
+export default function VersionsPage() {
   const [expandedVersion, setExpandedVersion] = useState<string | null>(null);
 
   return (

@@ -5,7 +5,6 @@ import { AdminTopBar } from '@/components/admin/admin-top-bar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge-ui';
 import { Button } from '@/components/ui/button';
-import { Tabs } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,

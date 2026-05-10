@@ -215,6 +215,49 @@ a {
   }
 }
 
+.sagp-confetti {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.sagp-confetti span {
+  --i: 0;
+  position: absolute;
+  top: -1rem;
+  left: calc((var(--i) * 6%) - 4%);
+  width: 0.45rem;
+  height: 0.8rem;
+  background: var(--sagp-cyan);
+  box-shadow: 0 0 12px rgba(0, 245, 255, 0.55);
+  transform: rotate(calc(var(--i) * 24deg));
+  animation: sagpConfettiFall 1.9s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.07s);
+}
+
+.sagp-confetti span:nth-child(3n) {
+  background: var(--sagp-green);
+}
+
+.sagp-confetti span:nth-child(3n + 1) {
+  background: var(--sagp-purple);
+}
+
+@keyframes sagpConfettiFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -1rem, 0) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc((var(--i) - 9) * 0.35rem), 22rem, 0) rotate(720deg);
+  }
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;

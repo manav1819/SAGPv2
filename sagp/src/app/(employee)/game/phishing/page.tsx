@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { CertificateAward } from '@/components/employee/certificate-award';
 import { Loader2, CheckCircle2, AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -38,15 +39,22 @@ interface GameCompletePayload {
 
 type Phase = 'loading' | 'playing' | 'saving' | 'result' | 'error';
 
+interface SavedResult {
+  moduleTitle: string;
+  score: number;
+  pointsEarned: number;
+  completedAt: string;
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function PhishingGamePage() {
   const router   = useRouter();
-  const { profile, membership, isLoading: authLoading } = useAuth();
+  const { profile, isLoading: authLoading } = useAuth();
 
   const [phase,  setPhase]  = useState<Phase>('loading');
   const [passed, setPassed] = useState<boolean>(false);
-  const [error,  setError]  = useState<string>('');
+  const [savedResult, setSavedResult] = useState<SavedResult | null>(null);
 
   const sessionRefRef = useRef<string>('');
 
@@ -84,13 +92,26 @@ export default function PhishingGamePage() {
         });
 
         if (!res.ok) throw new Error('Failed to save results');
+        const saved = await res.json();
 
         setPassed(data.won);
+        setSavedResult({
+          moduleTitle: saved.module?.title || 'Phishing Simulator',
+          score: data.sessionData.finalScore,
+          pointsEarned: saved.pointsEarned ?? data.sessionData.finalScore,
+          completedAt: saved.completedAt || new Date().toISOString(),
+        });
         setPhase('result');
       } catch (err) {
         console.error('Failed to save game result:', err);
         // Even on save failure, show the result to the employee
         setPassed(data.won);
+        setSavedResult({
+          moduleTitle: 'Phishing Simulator',
+          score: data.sessionData.finalScore,
+          pointsEarned: data.sessionData.finalScore,
+          completedAt: new Date().toISOString(),
+        });
         setPhase('result');
       }
     };
@@ -105,6 +126,12 @@ export default function PhishingGamePage() {
     : 'Agent';
 
   const gameUrl = `/phishing-game/index.html?playerName=${encodeURIComponent(playerName)}&sessionRef=${sessionRefRef.current}`;
+
+  const handlePlayAgain = () => {
+    sessionRefRef.current = crypto.randomUUID();
+    setSavedResult(null);
+    setPhase('playing');
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -137,7 +164,7 @@ export default function PhishingGamePage() {
   if (phase === 'result') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4">
-        <Card className="w-full max-w-md border-slate-700 bg-slate-800 shadow-2xl">
+        <Card className="w-full max-w-3xl border-slate-700 bg-slate-800 shadow-2xl">
           <div className="p-8 text-center">
             {passed ? (
               <>
@@ -149,6 +176,23 @@ export default function PhishingGamePage() {
                 <p className="mb-8 text-sm text-slate-400">
                   You demonstrated strong phishing awareness. No retraining required at this time.
                 </p>
+                {savedResult && (
+                  <div className="mx-auto mb-6 max-w-sm rounded-lg border border-yellow-400/20 bg-yellow-900/20 p-5">
+                    <p className="text-sm text-yellow-200">Points earned on this submission</p>
+                    <p className="text-4xl font-bold text-yellow-300">+{savedResult.pointsEarned}</p>
+                  </div>
+                )}
+                {savedResult && (
+                  <div className="mb-8">
+                    <CertificateAward
+                      learnerName={playerName}
+                      moduleTitle={savedResult.moduleTitle}
+                      completedAt={savedResult.completedAt}
+                      score={savedResult.score}
+                      showConfetti
+                    />
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -166,7 +210,7 @@ export default function PhishingGamePage() {
 
             <div className="flex flex-col gap-3">
               <Button
-                onClick={() => setPhase('playing')}
+                onClick={handlePlayAgain}
                 variant="primary"
                 className="w-full gap-2"
               >

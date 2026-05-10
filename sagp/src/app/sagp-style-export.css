@@ -484,12 +484,57 @@ body.sagp-body textarea,
   height: 100%;
   opacity: 0.45;
 }
+.sagp-matrix-rain {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(5, 8, 16, 0.18), rgba(5, 8, 16, 0.72)),
+    repeating-linear-gradient(90deg, rgba(0, 245, 255, 0.04) 0 1px, transparent 1px 64px);
+}
+.sagp-matrix-rain span {
+  --i: 0;
+  position: absolute;
+  top: -32rem;
+  left: calc((var(--i) * 3.75%) - 2%);
+  width: 1rem;
+  color: rgba(0, 245, 255, 0.72);
+  font-family: var(--sagp-font-mono);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  text-shadow: 0 0 12px rgba(0, 245, 255, 0.85);
+  writing-mode: vertical-rl;
+  word-break: break-all;
+  opacity: calc(0.32 + ((var(--i) % 6) * 0.08));
+  animation: sagpMatrixFlow calc(8s + (var(--i) % 7) * 0.9s) linear infinite;
+  animation-delay: calc(var(--i) * -0.48s);
+}
+.sagp-matrix-rain span:nth-child(3n) {
+  color: rgba(125, 255, 107, 0.7);
+}
+.sagp-matrix-rain span:nth-child(4n) {
+  font-size: 0.68rem;
+}
+.sagp-matrix-rain span:nth-child(5n) {
+  color: rgba(191, 95, 255, 0.55);
+}
 .sagp-login-panel {
   position: relative;
   z-index: 1;
   width: min(100%, 28rem);
   padding: 1.5rem;
   box-shadow: 0 0 70px rgba(0, 245, 255, 0.22), var(--sagp-shadow-card);
+}
+
+@keyframes sagpMatrixFlow {
+  0% {
+    transform: translate3d(0, -28vh, 0);
+  }
+  100% {
+    transform: translate3d(0, 140vh, 0);
+  }
 }
 .sagp-login-header { margin-bottom: 2rem; text-align: center; }
 .sagp-login-logo {

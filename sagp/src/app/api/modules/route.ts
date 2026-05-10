@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createModule, listModules } from '@/engines/training';
 import { NextRequest, NextResponse } from 'next/server';
+import type { ModuleCategory } from '@/types/database';
 
 interface CreateModuleRequest {
   title: string;
@@ -12,6 +13,12 @@ interface CreateModuleRequest {
   estimated_mins: number;
   compliance_tags: string[];
   prerequisites: string[];
+}
+
+interface ListModuleFilters {
+  category?: ModuleCategory;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  is_active?: boolean;
 }
 
 export async function GET(request: NextRequest) {
@@ -47,9 +54,9 @@ export async function GET(request: NextRequest) {
     const difficulty = params.get('difficulty');
     const isActive = params.get('is_active') === 'true';
 
-    const filters: any = {};
-    if (category) filters.category = category;
-    if (difficulty) filters.difficulty = difficulty;
+    const filters: ListModuleFilters = {};
+    if (category) filters.category = category as ModuleCategory;
+    if (difficulty) filters.difficulty = difficulty as 'easy' | 'medium' | 'hard';
     if (params.get('is_active') !== null) filters.is_active = isActive;
 
     const modules = await listModules(membership.org_id, filters);
@@ -93,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     const body: CreateModuleRequest = await request.json();
 
-    const module = await createModule(
+    const createdModule = await createModule(
       {
         ...body,
         org_id: membership.org_id,
@@ -101,7 +108,7 @@ export async function POST(request: NextRequest) {
       user.id
     );
 
-    return NextResponse.json(module, { status: 201 });
+    return NextResponse.json(createdModule, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to create module' },

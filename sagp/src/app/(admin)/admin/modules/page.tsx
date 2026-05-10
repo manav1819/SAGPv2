@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Select } from '@/components/ui/select';
-import { Search, Plus, Edit2, Trash2, Copy, Download } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Download } from 'lucide-react';
 
 const mockModules = [
   {

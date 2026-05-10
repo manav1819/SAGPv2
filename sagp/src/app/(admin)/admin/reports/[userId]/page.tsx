@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { AdminTopBar } from '@/components/admin/admin-top-bar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge-ui';
@@ -12,10 +12,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  LineChart,
-  Line,
 } from 'recharts';
 import {
   Table,
@@ -25,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Clock, TrendingDown, AlertCircle } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 const userInfo = {
   name: 'John Doe',
@@ -116,7 +113,7 @@ const personaHistory = [
   { date: '2024-01-01', persona: 'Guesser', confidence: 0.58 },
 ];
 
-export default function UserReportPage({ params }: { params: { userId: string } }) {
+export default function UserReportPage() {
   return (
     <div className="flex-1 flex flex-col">
       <AdminTopBar
