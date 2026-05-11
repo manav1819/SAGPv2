@@ -19,6 +19,30 @@ const GAMES = [
     href:        '/game/phishing',
     available:   true,
   },
+  {
+    id:          'phishing-rpg',
+    title:       'Phishing RPG',
+    description: 'Play a role-based phishing detection adventure. Make choices, protect your team, and learn to spot spoofed messages in action.',
+    category:    'Role Playing',
+    difficulty:  'Medium',
+    estimatedMins: 7,
+    points:      650,
+    icon:        '🛡️',
+    href:        '/phishing-rpg',
+    available:   true,
+  },
+  {
+    id:          '3d-escape',
+    title:       '3D Cyber Escape',
+    description: 'Navigate a 3D environment, solve security challenges, and escape threats in a fully immersive browser-based training game.',
+    category:    'Immersive Simulation',
+    difficulty:  'Hard',
+    estimatedMins: 8,
+    points:      750,
+    icon:        '🕹️',
+    href:        '/3dGame',
+    available:   true,
+  },
 ];
 
 export default function GamesPage() {
