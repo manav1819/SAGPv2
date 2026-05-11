@@ -266,7 +266,6 @@ export default class Start extends Phaser.Scene {
         <input
           id="playerNameInput"
           type="text"
-          placeholder="Your name / Participant ID"
           maxlength="24"
           autocomplete="off"
           style="

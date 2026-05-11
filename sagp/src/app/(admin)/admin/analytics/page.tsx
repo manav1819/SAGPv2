@@ -5,8 +5,6 @@ import { AdminTopBar } from '@/components/admin/admin-top-bar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart,
@@ -16,7 +14,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts';
 import {
@@ -27,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Download, Calendar } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 const heatmapData = [
   { module: 'Phishing 101', mon: 45, tue: 52, wed: 48, thu: 61, fri: 58, sat: 12, sun: 8 },

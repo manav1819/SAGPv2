@@ -102,7 +102,7 @@ export default function SuperadminAdminsPage() {
 
         {success && (
           <div className="mb-4 flex items-start gap-2 rounded-lg bg-teal-900/30 border border-teal-500/30 p-4">
-            <Mail className="mt-0.5 h-4 w-4 text-teal-400 flex-shrink-0" />
+            <Mail className="mt-0.5 h-4 w-4 text-teal-400 shrink-0" />
             <p className="text-sm text-teal-300">{success}</p>
           </div>
         )}
@@ -132,7 +132,7 @@ export default function SuperadminAdminsPage() {
               Admin Email <span className="text-red-400">*</span>
             </label>
             <Input
-              name="email" type="email" placeholder="admin@company.com"
+              name="email" type="email"
               value={formData.email} onChange={handleChange}
               className="border-slate-600 bg-slate-700 text-white"
             />
@@ -144,7 +144,7 @@ export default function SuperadminAdminsPage() {
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-300">First Name</label>
               <Input
-                name="firstName" placeholder="Jane"
+                name="firstName"
                 value={formData.firstName} onChange={handleChange}
                 className="border-slate-600 bg-slate-700 text-white"
               />
@@ -152,7 +152,7 @@ export default function SuperadminAdminsPage() {
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-300">Last Name</label>
               <Input
-                name="lastName" placeholder="Smith"
+                name="lastName"
                 value={formData.lastName} onChange={handleChange}
                 className="border-slate-600 bg-slate-700 text-white"
               />

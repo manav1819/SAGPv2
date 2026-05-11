@@ -14,21 +14,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  RadialBarChart,
-  RadialBar,
 } from 'recharts';
-import { TrendingUp, Users, CheckCircle, AlertCircle, Zap } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Users, CheckCircle, AlertCircle, Zap } from 'lucide-react';
 
 // Mock data
 const securityScore = 72;
@@ -261,7 +248,7 @@ export default function AdminDashboard() {
                         <p className="text-xs text-slate-400 mt-1">{event.entity}</p>
                         <p className="text-xs text-slate-500 mt-1">{event.actor}</p>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
                         <Badge
                           variant={
                             event.severity === 'critical'

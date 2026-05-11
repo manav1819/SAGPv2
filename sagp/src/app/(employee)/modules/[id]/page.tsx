@@ -1,212 +1,273 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft, Award, BookOpen, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge-ui';
 import { Button } from '@/components/ui/button';
-import { Clock, BookOpen, Award, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { CertificateAward } from '@/components/employee/certificate-award';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/hooks/useAuth';
 
-const MOCK_MODULE = {
-  id: 1,
-  title: 'Password Security Best Practices',
-  description:
-    'Learn how to create, manage, and protect strong passwords. This module covers best practices for password creation, storage, and authentication methods.',
-  category: 'Security',
-  difficulty: 'Easy',
-  points: 180,
-  estimatedTime: 15,
-  compliance: ['GDPR', 'ISO 27001'],
-  prerequisites: [],
-  attempts: [
-    {
-      id: 1,
-      date: '2024-03-10',
-      score: 95,
-      time: 12,
-      status: 'Passed',
-    },
-    {
-      id: 2,
-      date: '2024-03-05',
-      score: 88,
-      time: 14,
-      status: 'Passed',
-    },
-  ],
-  bestScore: 95,
-};
+interface ModuleRecord {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  game_type: string;
+  points_value: number;
+  estimated_mins: number;
+  compliance_tags: string[] | null;
+  prerequisites: string[] | null;
+}
+
+interface SessionRecord {
+  id: string;
+  score: number | null;
+  passed: boolean | null;
+  time_taken_seconds: number | null;
+  ended_at: string | null;
+}
+
+interface ProgressRecord {
+  status: string;
+  best_score: number | null;
+  attempts: number;
+  completed_at: string | null;
+}
 
 export default function ModuleDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const moduleId = params.id;
+  const { user, profile, isLoading: authLoading } = useAuth();
+  const moduleId = String(params.id);
 
-  const handleStartGame = () => {
-    router.push(`/game/${moduleId}`);
+  const [moduleRecord, setModuleRecord] = useState<ModuleRecord | null>(null);
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [progress, setProgress] = useState<ProgressRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isStarting, setIsStarting] = useState(false);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    const loadModule = async () => {
+      const supabase = createClient();
+      const [{ data: moduleData }, { data: sessionData }, { data: progressData }] =
+        await Promise.all([
+          supabase.from('modules').select('*').eq('id', moduleId).maybeSingle(),
+          user
+            ? supabase
+                .from('game_sessions')
+                .select('id, score, passed, time_taken_seconds, ended_at')
+                .eq('user_id', user.id)
+                .eq('module_id', moduleId)
+                .eq('status', 'completed')
+                .order('ended_at', { ascending: false })
+            : Promise.resolve({ data: [] }),
+          user
+            ? supabase
+                .from('progress')
+                .select('status, best_score, attempts, completed_at')
+                .eq('user_id', user.id)
+                .eq('module_id', moduleId)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+        ]);
+
+      setModuleRecord((moduleData as ModuleRecord) || null);
+      setSessions((sessionData as SessionRecord[]) || []);
+      setProgress((progressData as ProgressRecord) || null);
+      setIsLoading(false);
+    };
+
+    loadModule();
+  }, [authLoading, moduleId, user]);
+
+  const learnerName = useMemo(() => {
+    if (!profile) return 'Learner';
+    return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email;
+  }, [profile]);
+
+  const isCompleted = progress?.status === 'completed';
+
+  const handleStartGame = async () => {
+    if (!moduleRecord) return;
+
+    if (moduleRecord.game_type === 'phishing_sim') {
+      router.push('/game/phishing');
+      return;
+    }
+
+    setIsStarting(true);
+    const response = await fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ module_id: moduleRecord.id }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      router.push(`/game/${data.session.id}`);
+    } else {
+      setIsStarting(false);
+    }
   };
 
-  const canStart = MOCK_MODULE.prerequisites.length === 0;
+  if (isLoading) {
+    return (
+      <div className="p-8">
+        <Card className="p-8 text-center sagp-text-muted">
+          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin sagp-text-cyan" />
+          Loading module...
+        </Card>
+      </div>
+    );
+  }
+
+  if (!moduleRecord) {
+    return (
+      <div className="p-8">
+        <Card className="p-8 text-center sagp-text-muted">Module not found.</Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-8">
-      {/* Back Button */}
-      <Link
-        href="/modules"
-        className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300"
-      >
+      <Link href="/modules" className="inline-flex items-center gap-2 sagp-text-cyan hover:text-white">
         <ArrowLeft className="h-4 w-4" />
         Back to Modules
       </Link>
 
-      {/* Header */}
-      <div className="border-b border-slate-700 pb-6">
-        <div className="mb-4 flex items-start justify-between">
+      <div className="border-b border-cyan-300/15 pb-6">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">{MOCK_MODULE.title}</h1>
-            <p className="mt-2 text-slate-400">{MOCK_MODULE.description}</p>
+            <h1 className="font-heading text-3xl font-bold text-white sagp-neon-text">
+              {moduleRecord.title}
+            </h1>
+            <p className="mt-2 sagp-text-muted">{moduleRecord.description}</p>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold text-teal-400">+{MOCK_MODULE.points}</p>
-            <p className="text-sm text-slate-400">XP</p>
+            <p className="text-3xl font-bold sagp-text-cyan">+{moduleRecord.points_value}</p>
+            <p className="text-sm sagp-text-muted">XP</p>
           </div>
         </div>
 
-        {/* Meta Info */}
         <div className="flex flex-wrap gap-3">
-          <Badge className="border-slate-600 bg-slate-700 text-slate-200">
-            {MOCK_MODULE.category}
-          </Badge>
-          <Badge className="border-red-600 bg-red-900 text-red-200">
-            {MOCK_MODULE.difficulty}
-          </Badge>
-          {MOCK_MODULE.compliance.map((comp) => (
-            <Badge key={comp} className="border-teal-600 bg-teal-900 text-teal-200">
-              {comp}
+          <Badge>{moduleRecord.category}</Badge>
+          <Badge variant="warning">{moduleRecord.difficulty}</Badge>
+          {(moduleRecord.compliance_tags || []).map((tag) => (
+            <Badge key={tag} variant="secondary">
+              {tag}
             </Badge>
           ))}
         </div>
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left Column - Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Module Info */}
-          <Card className="border-slate-700 bg-slate-800">
-            <div className="border-b border-slate-700 p-6">
+        <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <div className="border-b border-cyan-300/15 p-6">
               <h3 className="font-semibold text-white">Module Information</h3>
             </div>
             <div className="space-y-4 p-6">
               <div className="flex items-center gap-4">
-                <Clock className="h-5 w-5 text-teal-400" />
+                <Clock className="h-5 w-5 sagp-text-cyan" />
                 <div>
-                  <p className="text-sm text-slate-400">Estimated Time</p>
-                  <p className="font-medium text-white">{MOCK_MODULE.estimatedTime} minutes</p>
+                  <p className="text-sm sagp-text-muted">Estimated Time</p>
+                  <p className="font-medium text-white">{moduleRecord.estimated_mins} minutes</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <Award className="h-5 w-5 text-teal-400" />
+                <Award className="h-5 w-5 sagp-text-cyan" />
                 <div>
-                  <p className="text-sm text-slate-400">Reward</p>
-                  <p className="font-medium text-white">{MOCK_MODULE.points} XP</p>
+                  <p className="text-sm sagp-text-muted">Reward</p>
+                  <p className="font-medium text-white">{moduleRecord.points_value} XP</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <BookOpen className="h-5 w-5 text-teal-400" />
+                <BookOpen className="h-5 w-5 sagp-text-cyan" />
                 <div>
-                  <p className="text-sm text-slate-400">Category</p>
-                  <p className="font-medium text-white">{MOCK_MODULE.category}</p>
+                  <p className="text-sm sagp-text-muted">Category</p>
+                  <p className="font-medium text-white">{moduleRecord.category}</p>
                 </div>
               </div>
             </div>
           </Card>
 
-          {/* Prerequisites */}
-          {MOCK_MODULE.prerequisites.length > 0 && (
-            <Card className="border-slate-700 bg-slate-800">
-              <div className="border-b border-slate-700 p-6">
-                <h3 className="font-semibold text-white">Prerequisites</h3>
+          {sessions.length > 0 && (
+            <Card>
+              <div className="border-b border-cyan-300/15 p-6">
+                <h3 className="font-semibold text-white">Completed Attempts</h3>
               </div>
-              <div className="space-y-3 p-6">
-                {MOCK_MODULE.prerequisites.map((prereq, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    <span className="text-white">{prereq}</span>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-cyan-300/15">
+                      <th className="px-6 py-3 text-left font-medium sagp-text-muted">Date</th>
+                      <th className="px-6 py-3 text-left font-medium sagp-text-muted">Score</th>
+                      <th className="px-6 py-3 text-left font-medium sagp-text-muted">Time</th>
+                      <th className="px-6 py-3 text-left font-medium sagp-text-muted">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessions.map((session) => (
+                      <tr key={session.id} className="border-b border-cyan-300/10">
+                        <td className="px-6 py-4 text-white">
+                          {session.ended_at ? new Date(session.ended_at).toLocaleDateString() : 'Completed'}
+                        </td>
+                        <td className="px-6 py-4 font-medium sagp-text-cyan">{session.score || 0}</td>
+                        <td className="px-6 py-4 text-white">
+                          {Math.round((session.time_taken_seconds || 0) / 60)}m
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge variant={session.passed ? 'success' : 'destructive'}>
+                            {session.passed ? 'Cleared' : 'Review Needed'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </Card>
           )}
 
-          {/* Past Attempts */}
-          <Card className="border-slate-700 bg-slate-800">
-            <div className="border-b border-slate-700 p-6">
-              <h3 className="font-semibold text-white">Past Attempts</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="px-6 py-3 text-left font-medium text-slate-400">Date</th>
-                    <th className="px-6 py-3 text-left font-medium text-slate-400">Score</th>
-                    <th className="px-6 py-3 text-left font-medium text-slate-400">Time</th>
-                    <th className="px-6 py-3 text-left font-medium text-slate-400">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {MOCK_MODULE.attempts.map((attempt) => (
-                    <tr key={attempt.id} className="border-b border-slate-700">
-                      <td className="px-6 py-4 text-white">{attempt.date}</td>
-                      <td className="px-6 py-4 font-medium text-teal-400">{attempt.score}%</td>
-                      <td className="px-6 py-4 text-white">{attempt.time}m</td>
-                      <td className="px-6 py-4">
-                        <Badge className="border-green-600 bg-green-900 text-green-200">
-                          {attempt.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          {isCompleted && (
+            <CertificateAward
+              learnerName={learnerName}
+              moduleTitle={moduleRecord.title}
+              completedAt={progress?.completed_at || undefined}
+              score={progress?.best_score}
+            />
+          )}
         </div>
 
-        {/* Right Column - CTA */}
         <div className="space-y-4">
-          {/* Best Score */}
-          <Card className="border-slate-700 bg-gradient-to-br from-slate-800 to-slate-700">
-            <div className="p-6">
-              <p className="mb-2 text-sm text-slate-400">Your Best Score</p>
-              <p className="text-4xl font-bold text-teal-400">{MOCK_MODULE.bestScore}%</p>
-              <p className="mt-4 text-xs text-slate-500">
-                Complete the module again to improve your score
-              </p>
-            </div>
-          </Card>
+          {isCompleted && (
+            <Card>
+              <div className="p-6">
+                <div className="mb-2 flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 sagp-text-green" />
+                  <p className="text-sm sagp-text-muted">Your Best Score</p>
+                </div>
+                <p className="text-4xl font-bold sagp-text-cyan">{progress?.best_score || 0}</p>
+              </div>
+            </Card>
+          )}
 
-          {/* Start Button */}
           <Button
             onClick={handleStartGame}
-            disabled={!canStart}
+            disabled={isStarting}
             variant="primary"
             className="w-full py-6 text-base"
           >
-            {canStart ? 'Start Module' : 'Complete Prerequisites'}
+            {isStarting ? 'Starting...' : isCompleted ? 'Play Again' : 'Start Module'}
           </Button>
-
-          {/* Info */}
-          {canStart && (
-            <Card className="border-slate-700 bg-slate-800">
-              <div className="p-4">
-                <p className="text-xs text-slate-400">
-                  This is an interactive training module. You'll complete scenarios and answer
-                  questions to test your knowledge.
-                </p>
-              </div>
-            </Card>
-          )}
         </div>
       </div>
     </div>

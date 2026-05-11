@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/providers/auth-provider';
 import { ToastProvider } from '@/components/ui/toast';
+import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -23,15 +24,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body
-        className="antialiased bg-slate-900 text-slate-50"
-        style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
-      >
+      <body className="sagp-body sagp-scanlines sagp-cyber-grid antialiased">
         <AuthProvider>
           <ToastProvider>
             {children}
           </ToastProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );

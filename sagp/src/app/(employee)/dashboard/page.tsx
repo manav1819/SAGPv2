@@ -1,244 +1,218 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { AlertCircle, Award, Clock, Target, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge-ui';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
-import { Flame, TrendingUp, Award, Clock, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/hooks/useAuth';
 
-const RISK_COLORS: Record<string, { bg: string; text: string }> = {
-  Low: { bg: 'bg-green-900', text: 'text-green-200' },
-  Medium: { bg: 'bg-yellow-900', text: 'text-yellow-200' },
-  High: { bg: 'bg-orange-900', text: 'text-orange-200' },
-  Critical: { bg: 'bg-red-900', text: 'text-red-200' },
-};
-
-const MOCK_ACTIVITY = [
-  {
-    id: 1,
-    title: 'Phishing Simulation Round 1',
-    result: 'Passed',
-    points: 250,
-    date: '2 days ago',
-  },
-  {
-    id: 2,
-    title: 'Password Security Module',
-    result: 'Passed',
-    points: 180,
-    date: '3 days ago',
-  },
-  {
-    id: 3,
-    title: 'Data Protection Training',
-    result: 'Passed',
-    points: 220,
-    date: '5 days ago',
-  },
-  {
-    id: 4,
-    title: 'Email Security Basics',
-    result: 'Passed',
-    points: 150,
-    date: '1 week ago',
-  },
-  {
-    id: 5,
-    title: 'Compliance Essentials',
-    result: 'Passed',
-    points: 200,
-    date: '1 week ago',
-  },
-];
-
-const RECOMMENDED_MODULES = [
-  {
-    id: 1,
-    title: 'Advanced Phishing Detection',
-    category: 'Security',
-    difficulty: 'Hard',
-    points: 350,
-    icon: '🎯',
-  },
-  {
-    id: 2,
-    title: 'Social Engineering Defense',
-    category: 'Awareness',
-    difficulty: 'Medium',
-    points: 280,
-    icon: '🛡️',
-  },
-  {
-    id: 3,
-    title: 'Incident Response Protocols',
-    category: 'Compliance',
-    difficulty: 'Hard',
-    points: 400,
-    icon: '🚨',
-  },
-];
+interface CompletedSession {
+  id: string;
+  score: number | null;
+  passed: boolean | null;
+  time_taken_seconds: number | null;
+  ended_at: string | null;
+  game_state: Record<string, unknown> | null;
+  modules:
+    | {
+        title: string;
+        points_value: number;
+        category: string;
+      }
+    | null;
+}
 
 export default function DashboardPage() {
-  const userRiskTier = 'Medium';
-  const riskScore = 45;
-  const companyScore = 72;
-  const xpCurrent = 3850;
-  const xpNeeded = 5000;
-  const xpPercent = (xpCurrent / xpNeeded) * 100;
+  const { user, isLoading } = useAuth();
+  const [sessions, setSessions] = useState<CompletedSession[]>([]);
+  const [isFetching, setIsFetching] = useState(true);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const loadSessions = async () => {
+      if (!user) {
+        setSessions([]);
+        setIsFetching(false);
+        return;
+      }
+
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('game_sessions')
+        .select('id, score, passed, time_taken_seconds, ended_at, game_state, modules:module_id(title, points_value, category)')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('ended_at', { ascending: false });
+
+      const normalizedSessions = ((data as unknown[]) || []).map((row) => {
+        const session = row as Omit<CompletedSession, 'modules'> & {
+          modules:
+            | CompletedSession['modules']
+            | CompletedSession['modules'][]
+            | null;
+        };
+        const joinedModule = Array.isArray(session.modules)
+          ? session.modules[0] || null
+          : session.modules;
+
+        return {
+          ...session,
+          modules: joinedModule,
+        };
+      });
+
+      setSessions(normalizedSessions);
+      setIsFetching(false);
+    };
+
+    loadSessions();
+  }, [isLoading, user]);
+
+  const stats = useMemo(() => {
+    const completed = sessions.length;
+    const passed = sessions.filter((session) => session.passed).length;
+    const totalXp = sessions.reduce(
+      (sum, session) => sum + (session.passed ? session.modules?.points_value || 0 : 0),
+      0
+    );
+    const averageScore =
+      completed > 0
+        ? Math.round(
+            sessions.reduce((sum, session) => sum + (session.score || 0), 0) / completed
+          )
+        : 0;
+    const averageAccuracy =
+      completed > 0
+        ? Math.round(
+            sessions.reduce((sum, session) => {
+              const accuracy = session.game_state?.accuracy;
+              return sum + (typeof accuracy === 'number' ? accuracy : 0);
+            }, 0) / completed
+          )
+        : 0;
+    const totalMinutes = Math.round(
+      sessions.reduce((sum, session) => sum + (session.time_taken_seconds || 0), 0) / 60
+    );
+
+    return { completed, passed, totalXp, averageScore, averageAccuracy, totalMinutes };
+  }, [sessions]);
+
+  if (isFetching) {
+    return (
+      <div className="space-y-6 p-8">
+        <Card className="p-8 text-center sagp-text-muted">Loading your training activity...</Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-8">
-      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-        <p className="mt-1 text-slate-400">Welcome back! Here's your security training progress</p>
+        <h1 className="font-heading text-3xl font-bold text-white sagp-neon-text">Dashboard</h1>
+        <p className="mt-1 sagp-text-muted">Your activity appears here after you complete games.</p>
       </div>
 
-      {/* Top Row - Key Stats */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Security Persona */}
-        <Card className="border-slate-700 bg-slate-800">
-          <div className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold text-white">Security Persona</h3>
-              <span className="text-2xl">🎭</span>
-            </div>
-            <p className="mb-2 text-lg font-bold text-teal-400">Careful Defender</p>
-            <p className="text-sm text-slate-400">
-              You demonstrate strong security awareness and cautious behavior
-            </p>
-          </div>
-        </Card>
-
-        {/* Risk Tier */}
-        <Card className="border-slate-700 bg-slate-800">
-          <div className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold text-white">Risk Tier</h3>
-              <AlertCircle className="h-5 w-5 text-slate-400" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <Badge
-                className={`${
-                  RISK_COLORS[userRiskTier].bg
-                } ${RISK_COLORS[userRiskTier].text} border-0`}
-              >
-                {userRiskTier}
-              </Badge>
-              <span className="text-2xl font-bold text-white">{riskScore}</span>
-              <span className="text-sm text-slate-400">/100</span>
-            </div>
-            <p className="mt-2 text-xs text-slate-500">Risk score based on training performance</p>
-          </div>
-        </Card>
-
-        {/* Streak */}
-        <Card className="border-slate-700 bg-gradient-to-br from-slate-800 to-slate-700">
-          <div className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold text-white">Current Streak</h3>
-              <Flame className="h-5 w-5 text-orange-500" />
-            </div>
-            <p className="text-4xl font-bold text-orange-400">7</p>
-            <p className="mt-2 text-sm text-slate-400">days of consistent training</p>
-          </div>
-        </Card>
-      </div>
-
-      {/* XP Progress and Company Score */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* XP Progress */}
-        <Card className="border-slate-700 bg-slate-800">
-          <div className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold text-white">Next Level Progress</h3>
-              <TrendingUp className="h-5 w-5 text-teal-400" />
-            </div>
-            <div className="mb-2 flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-white">{xpCurrent}</span>
-              <span className="text-sm text-slate-400">/ {xpNeeded} XP</span>
-            </div>
-            <ProgressBar value={xpPercent} max={100} />
-            <p className="mt-3 text-xs text-slate-400">
-              {Math.round((xpNeeded - xpCurrent) / 10)} training actions remaining
-            </p>
-          </div>
-        </Card>
-
-        {/* Company Score */}
-        <Card className="border-slate-700 bg-slate-800">
-          <div className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold text-white">Company Security Score</h3>
-              <Award className="h-5 w-5 text-slate-400" />
-            </div>
-            <p className="mb-2 text-3xl font-bold text-teal-400">{companyScore}%</p>
-            <p className="text-sm text-slate-400">
-              Your organization is above industry average
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card className="border-slate-700 bg-slate-800">
-        <div className="border-b border-slate-700 p-6">
-          <h3 className="font-semibold text-white">Recent Activity</h3>
-        </div>
-        <div className="divide-y divide-slate-700">
-          {MOCK_ACTIVITY.map((activity) => (
-            <div key={activity.id} className="flex items-center justify-between p-4">
-              <div className="flex-1">
-                <p className="font-medium text-white">{activity.title}</p>
-                <p className="text-xs text-slate-400">{activity.date}</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <Badge className="border-slate-600 bg-slate-700 text-slate-200">
-                  {activity.result}
-                </Badge>
-                <span className="font-semibold text-teal-400">+{activity.points} XP</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* Recommended Modules */}
-      <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white">Recommended Modules</h3>
-          <Link href="/modules">
-            <Button variant="ghost">
-              View All
-            </Button>
+      {sessions.length === 0 ? (
+        <Card className="p-8 text-center">
+          <AlertCircle className="mx-auto mb-4 h-10 w-10 sagp-text-cyan" />
+          <h2 className="font-heading text-xl font-bold text-white">No game stats yet</h2>
+          <p className="mx-auto mt-2 max-w-xl sagp-text-muted">
+            Complete a training game to unlock score, XP, accuracy, completion, and badge cards.
+          </p>
+          <Link href="/games">
+            <Button className="mt-6">Play a Game</Button>
           </Link>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {RECOMMENDED_MODULES.map((module) => (
-            <Card key={module.id} className="border-slate-700 bg-slate-800">
+        </Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+            <Card>
               <div className="p-6">
-                <div className="mb-3 flex items-start justify-between">
-                  <span className="text-3xl">{module.icon}</span>
-                  <Badge className="border-slate-600 bg-teal-900 text-teal-200">
-                    {module.difficulty}
-                  </Badge>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="font-semibold text-white">Games Completed</h3>
+                  <Target className="h-5 w-5 sagp-text-cyan" />
                 </div>
-                <h4 className="mb-2 font-semibold text-white">{module.title}</h4>
-                <p className="mb-4 text-sm text-slate-400">{module.category}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-teal-400">+{module.points} XP</span>
-                  <Link href={`/modules/${module.id}`}>
-                    <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
-                      Start
-                    </Button>
-                  </Link>
-                </div>
+                <p className="text-4xl font-bold text-white">{stats.completed}</p>
+                <p className="mt-2 text-sm sagp-text-muted">{stats.passed} cleared</p>
               </div>
             </Card>
-          ))}
-        </div>
-      </div>
+
+            <Card>
+              <div className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="font-semibold text-white">Total XP</h3>
+                  <Award className="h-5 w-5 sagp-text-green" />
+                </div>
+                <p className="text-4xl font-bold sagp-text-green">{stats.totalXp}</p>
+                <p className="mt-2 text-sm sagp-text-muted">earned from passed games</p>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="font-semibold text-white">Average Score</h3>
+                  <TrendingUp className="h-5 w-5 sagp-text-purple" />
+                </div>
+                <p className="text-4xl font-bold sagp-text-cyan">{stats.averageScore}</p>
+                <p className="mt-2 text-sm sagp-text-muted">across completed games</p>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="font-semibold text-white">Time Trained</h3>
+                  <Clock className="h-5 w-5 sagp-text-cyan" />
+                </div>
+                <p className="text-4xl font-bold text-white">{stats.totalMinutes}m</p>
+                <p className="mt-2 text-sm sagp-text-muted">total completed time</p>
+              </div>
+            </Card>
+          </div>
+
+          {stats.averageAccuracy > 0 && (
+            <Card>
+              <div className="p-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="font-semibold text-white">Phishing Accuracy</h3>
+                  <span className="font-mono text-sm sagp-text-cyan">{stats.averageAccuracy}%</span>
+                </div>
+                <ProgressBar value={stats.averageAccuracy} max={100} />
+              </div>
+            </Card>
+          )}
+
+          <Card>
+            <div className="border-b border-cyan-300/15 p-6">
+              <h3 className="font-semibold text-white">Recent Completed Games</h3>
+            </div>
+            <div className="divide-y divide-cyan-300/10">
+              {sessions.slice(0, 5).map((session) => (
+                <div key={session.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                  <div>
+                    <p className="font-medium text-white">{session.modules?.title || 'Training Game'}</p>
+                    <p className="text-xs sagp-text-muted">
+                      {session.ended_at ? new Date(session.ended_at).toLocaleString() : 'Completed'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={session.passed ? 'success' : 'destructive'}>
+                      {session.passed ? 'Cleared' : 'Review Needed'}
+                    </Badge>
+                    <span className="font-semibold sagp-text-cyan">{session.score || 0}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

@@ -67,7 +67,7 @@ interface ToastContainerProps {
 
 function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   return (
-    <div className="fixed bottom-0 right-0 z-[9999] flex flex-col gap-3 p-4 pointer-events-none">
+    <div className="fixed bottom-0 right-0 z-9999 flex flex-col gap-3 p-4 pointer-events-none">
       {toasts.map((toast) => (
         <ToastItem
           key={toast.id}
@@ -119,7 +119,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       </p>
       <button
         onClick={() => onRemove(toast.id)}
-        className="p-1 text-slate-400 hover:text-slate-200 transition-colors flex-shrink-0"
+        className="p-1 text-slate-400 hover:text-slate-200 transition-colors shrink-0"
         aria-label="Close toast"
       >
         <X className="h-4 w-4" />

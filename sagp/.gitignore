@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/.npm-cache
 /.pnp
 .pnp.*
 .yarn/*
@@ -29,6 +30,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+
+# temporary exports / local cleanup artifacts
+_style_import_tmp/
 
 # env files (can opt-in for committing if needed)
 .env*

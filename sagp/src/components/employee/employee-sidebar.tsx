@@ -13,39 +13,16 @@ import {
   Flame,
   Swords,
   Gamepad2,
+  ShieldCheck,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  {
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    label: 'Modules',
-    href: '/modules',
-    icon: BookOpen,
-  },
-  {
-    label: 'Games',
-    href: '/games',
-    icon: Gamepad2,
-  },
-  {
-    label: 'Leaderboard',
-    href: '/leaderboard',
-    icon: Trophy,
-  },
-  {
-    label: 'Badges',
-    href: '/badges',
-    icon: Award,
-  },
-  {
-    label: 'Profile',
-    href: '/profile',
-    icon: User,
-  },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Modules', href: '/modules', icon: BookOpen },
+  { label: 'Games', href: '/games', icon: Gamepad2 },
+  { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
+  { label: 'Badges', href: '/badges', icon: Award },
+  { label: 'Profile', href: '/profile', icon: User },
 ];
 
 interface EmployeeSidebarProps {
@@ -72,75 +49,53 @@ export function EmployeeSidebar({
   };
 
   return (
-    <aside className="w-64 border-r border-slate-700 bg-slate-800 p-6">
-      {/* Logo */}
-      <Link href="/dashboard" className="mb-8 flex items-center gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-teal-400 to-teal-600">
-          <span className="text-lg font-bold text-white">🛡️</span>
-        </div>
-        <span className="text-xl font-bold text-white">SAGP</span>
-      </Link>
-
-      {/* Streak Counter */}
-      <div className="mb-8 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-slate-400">Current Streak</p>
-            <p className="text-2xl font-bold text-white">{streak}</p>
-            <p className="text-xs text-slate-400">days</p>
+    <header className="sagp-topbar">
+      <div className="sagp-topbar-inner">
+        <Link href="/dashboard" className="sagp-brand shrink-0">
+          <div className="sagp-brand-mark">
+            <ShieldCheck className="h-5 w-5" />
           </div>
-          <Flame className="h-10 w-10 text-orange-500" />
+          <span className="sagp-brand-text sagp-neon-text">SAGP</span>
+        </Link>
+
+        <nav className="sagp-horizontal-nav">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname.startsWith(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`sagp-nav-link ${isActive ? 'is-active' : ''}`}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="sagp-horizontal-actions">
+          <div className="sagp-badge sagp-badge-purple">
+            <Flame className="h-3.5 w-3.5" />
+            {streak} day streak
+          </div>
+          {activeBattle && (
+            <div className="sagp-badge sagp-badge-green">
+              <Swords className="h-3.5 w-3.5" />
+              Battle active
+            </div>
+          )}
+          <div className="hidden max-w-52 truncate text-sm sagp-text-muted lg:block">
+            {userName}
+          </div>
+          <Button onClick={handleLogout} variant="ghost" size="sm">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
-
-      {/* Active Battle */}
-      {activeBattle && (
-        <div className="mb-6 flex items-center gap-2 rounded-lg bg-teal-900 p-3">
-          <Swords className="h-4 w-4 text-teal-400" />
-          <span className="text-sm font-medium text-teal-200">Battle Active</span>
-        </div>
-      )}
-
-      {/* Navigation */}
-      <nav className="mb-8 space-y-1">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-teal-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Divider */}
-      <div className="mb-6 border-t border-slate-700"></div>
-
-      {/* User Info */}
-      <div className="mb-4 rounded-lg bg-slate-700 p-3">
-        <p className="text-xs text-slate-400">Logged in as</p>
-        <p className="font-medium text-white">{userName}</p>
-      </div>
-
-      {/* Logout */}
-      <Button
-        onClick={handleLogout}
-        variant="ghost"
-        className="w-full"
-      >
-        <LogOut className="mr-2 h-4 w-4" />
-        Logout
-      </Button>
-    </aside>
+    </header>
   );
 }

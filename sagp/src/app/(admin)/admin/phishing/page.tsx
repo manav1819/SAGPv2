@@ -213,7 +213,7 @@ export default function PhishingPage() {
                 <CardTitle>Create New Campaign</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <Input label="Campaign Name" placeholder="e.g., April Security Challenge" />
+                <Input label="Campaign Name" />
 
                 <Select label="Email Template">
                   <option>CEO Spoof</option>

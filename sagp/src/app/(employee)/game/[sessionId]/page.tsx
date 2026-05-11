@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { CertificateAward } from '@/components/employee/certificate-award';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { X, Loader2, CheckCircle2, Trophy } from 'lucide-react';
 
 interface GameResult {
@@ -16,6 +18,7 @@ interface GameResult {
 export default function GameLauncherPage() {
   const params = useParams();
   const router = useRouter();
+  const { profile } = useAuth();
   const sessionId = params.sessionId;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -74,6 +77,10 @@ export default function GameLauncherPage() {
     router.push('/dashboard');
   };
 
+  const learnerName = profile
+    ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email
+    : 'Learner';
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-900">
@@ -97,12 +104,12 @@ export default function GameLauncherPage() {
             <h1 className="mb-2 text-3xl font-bold text-white">Module Complete!</h1>
 
             <div className="my-8 space-y-4">
-              <div className="rounded-lg bg-gradient-to-r from-teal-900 to-teal-800 p-6">
+              <div className="rounded-lg bg-linear-to-r from-teal-900 to-teal-800 p-6">
                 <p className="text-sm text-teal-200">Your Score</p>
                 <p className="text-4xl font-bold text-teal-400">{gameResult.score}%</p>
               </div>
 
-              <div className="rounded-lg bg-gradient-to-r from-yellow-900 to-yellow-800 p-6">
+              <div className="rounded-lg bg-linear-to-r from-yellow-900 to-yellow-800 p-6">
                 <p className="text-sm text-yellow-200">Points Earned</p>
                 <p className="text-4xl font-bold text-yellow-400">+{gameResult.pointsEarned}</p>
               </div>
@@ -114,7 +121,7 @@ export default function GameLauncherPage() {
                     {gameResult.badges.map((badge) => (
                       <div
                         key={badge}
-                        className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-lg"
+                        className="flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br from-yellow-400 to-yellow-600 text-lg"
                       >
                         🏆
                       </div>
@@ -126,6 +133,13 @@ export default function GameLauncherPage() {
               <p className="text-sm text-slate-400">
                 Completed in {gameResult.timeTaken} minutes
               </p>
+
+              <CertificateAward
+                learnerName={learnerName}
+                moduleTitle="Training Module"
+                score={gameResult.score}
+                showConfetti
+              />
             </div>
 
             <Button

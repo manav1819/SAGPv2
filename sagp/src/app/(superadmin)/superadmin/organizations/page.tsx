@@ -121,7 +121,6 @@ export default function SuperadminOrganizationsPage() {
                 Organisation Name <span className="text-red-400">*</span>
               </label>
               <Input
-                placeholder="Acme Corp"
                 value={formData.name}
                 onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
                 className="border-slate-600 bg-slate-700 text-white"
@@ -133,7 +132,6 @@ export default function SuperadminOrganizationsPage() {
                 Email Domain <span className="text-slate-500">(optional — enforces domain on sign-up)</span>
               </label>
               <Input
-                placeholder="acme.com"
                 value={formData.domain}
                 onChange={e => setFormData(p => ({ ...p, domain: e.target.value }))}
                 className="border-slate-600 bg-slate-700 text-white"

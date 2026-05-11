@@ -11,7 +11,8 @@ export default function EmployeeLayout({
   const { user } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-slate-900">
+    <div className="sagp-app flex min-h-screen flex-col">
+      <div className="sagp-radial-center" />
       <EmployeeSidebar
         userName={user?.email || 'User'}
         streak={7}

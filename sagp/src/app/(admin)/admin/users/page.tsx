@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { AdminTopBar } from '@/components/admin/admin-top-bar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge-ui';
@@ -119,7 +118,6 @@ export default function UsersPage() {
                 <div className="relative md:col-span-2">
                   <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                   <Input
-                    placeholder="Search by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
