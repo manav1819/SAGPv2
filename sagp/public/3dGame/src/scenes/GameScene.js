@@ -48,14 +48,14 @@ export class GameScene extends Phaser.Scene {
     this._loadRoom(this.state.currentRoomId);
   }
 
-  update() {
+  update(time, delta) {
     if (this._transitioning) return;
 
     const locked = this.dialogueBox.isVisible();
     if (this.player)            this.player.update(locked);
     if (this.interactionMgr)    this.interactionMgr.update(this.player.sprite);
     if (this.doorSystem)        this.doorSystem.update(this.player.sprite);
-    if (this.npcManager)        this.npcManager.update();
+    if (this.npcManager)        this.npcManager.update(delta);
 
     this.hud.update(
       this.state.completedScenarios.size,

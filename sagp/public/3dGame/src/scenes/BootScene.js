@@ -17,6 +17,11 @@ export class BootScene extends Phaser.Scene {
       pct.setText(`Loading assets... ${Math.floor(v * 100)}%`);
     });
 
+    // Log any file errors to console for debugging
+    this.load.on('loaderror', (file) => {
+      console.warn('[BootScene] Failed to load:', file.src);
+    });
+
     // ── Title (shown during load) ────────────────────────────────────────────
     this.add.rectangle(W / 2, H / 2 - 80, 480, 200, 0x0d1b2a, 0.9)
       .setStrokeStyle(1, 0x1a4060);
