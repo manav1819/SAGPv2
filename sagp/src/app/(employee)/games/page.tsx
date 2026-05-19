@@ -5,21 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge-ui';
 import { Gamepad2, Shield, Clock, Award } from 'lucide-react';
-
-const GAMES = [
-  {
-    id:          'phishing',
-    title:       'Phishing Simulator',
-    description: 'Can you spot the phishing emails? Test your instincts against 10 real-world email scenarios. Each correct identification keeps you in the game — one wrong move costs a life.',
-    category:    'Security Awareness',
-    difficulty:  'Medium',
-    estimatedMins: 5,
-    points:      500,
-    icon:        '🎣',
-    href:        '/game/phishing',
-    available:   true,
-  },
-];
+import { GAMES, DIFFICULTY_LABELS, gameHref } from '@/config/games.config';
 
 export default function GamesPage() {
   return (
@@ -39,9 +25,11 @@ export default function GamesPage() {
             <div className="p-6 flex-1">
               {/* Icon + badges row */}
               <div className="mb-4 flex items-start justify-between">
-                <span className="text-5xl">{game.icon}</span>
+                <span className="text-5xl">{game.icon ?? '🎮'}</span>
                 <div className="flex flex-col items-end gap-1">
-                  <Badge className="border-0 bg-teal-900 text-teal-200">{game.difficulty}</Badge>
+                  <Badge className="border-0 bg-teal-900 text-teal-200">
+                    {DIFFICULTY_LABELS[game.difficulty]}
+                  </Badge>
                   <Badge className="border-0 bg-slate-700 text-slate-300">{game.category}</Badge>
                 </div>
               </div>
@@ -54,11 +42,11 @@ export default function GamesPage() {
               <div className="flex items-center gap-4 text-xs text-slate-500">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
-                  ~{game.estimatedMins} min
+                  ~{game.estimatedMinutes} min
                 </span>
                 <span className="flex items-center gap-1">
                   <Award className="h-3.5 w-3.5" />
-                  {game.points} pts
+                  {game.maxScore} pts
                 </span>
                 <span className="flex items-center gap-1">
                   <Shield className="h-3.5 w-3.5" />
@@ -69,8 +57,8 @@ export default function GamesPage() {
 
             {/* CTA */}
             <div className="border-t border-slate-700 p-4">
-              {game.available ? (
-                <Link href={game.href} className="block">
+              {game.active ? (
+                <Link href={gameHref(game)} className="block">
                   <Button variant="primary" className="w-full gap-2">
                     <Gamepad2 className="h-4 w-4" />
                     Play Now
