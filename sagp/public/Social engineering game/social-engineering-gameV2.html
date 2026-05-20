@@ -319,8 +319,36 @@ const W = 1024, H = 720;
 const gameState = {
   scenarioIndex: 0,
   score: 0,
+  speedScore: 0,        // running total of speed bonuses/penalties
+  responseTimes: [],    // seconds taken on each genuine decision
   results: []
 };
+
+function resetGameState() {
+  gameState.scenarioIndex = 0;
+  gameState.score = 0;
+  gameState.speedScore = 0;
+  gameState.responseTimes = [];
+  gameState.results = [];
+}
+
+// Speed scoring: how fast (in seconds) the player decided once the
+// answer buttons appeared. Fast answers earn a bonus; slow ones a penalty.
+function speedPoints(seconds) {
+  if (seconds <= 3)  return 5;   // snap decision
+  if (seconds <= 7)  return 3;   // quick
+  if (seconds <= 12) return 1;   // measured
+  if (seconds <= 20) return -2;  // hesitant
+  return -5;                     // very slow
+}
+
+function speedLabel(seconds) {
+  if (seconds <= 3)  return 'LIGHTNING';
+  if (seconds <= 7)  return 'QUICK';
+  if (seconds <= 12) return 'MEASURED';
+  if (seconds <= 20) return 'HESITANT';
+  return 'VERY SLOW';
+}
 
 // =========================================================================
 // HELPERS
@@ -428,9 +456,7 @@ class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     makePrimaryButton(this, W/2, 570, 'BEGIN TRAINING', 280, 60, () => {
-      gameState.scenarioIndex = 0;
-      gameState.score = 0;
-      gameState.results = [];
+      resetGameState();
       this.scene.start('ScenarioScene');
     });
 
@@ -556,6 +582,9 @@ class ScenarioScene extends Phaser.Scene {
     let typing = true;
     const showChoices = () => {
       typing = false;
+      // Start the decision clock only for genuine multi-option decisions —
+      // single "Continue" prompts are just narration, not a choice.
+      this.choiceStartTime = (node.choices.length > 1) ? performance.now() : null;
       const choiceY = 410;
       const gap = 14;
       const btnW = 880;
@@ -579,6 +608,16 @@ class ScenarioScene extends Phaser.Scene {
 
   handleChoice(choice) {
     gameState.score += choice.points;
+    // Apply speed bonus/penalty based on how long the player took to decide
+    // (timed from the moment the answer buttons appeared).
+    if (this.choiceStartTime != null) {
+      const elapsed = (performance.now() - this.choiceStartTime) / 1000;
+      const sp = speedPoints(elapsed);
+      gameState.speedScore += sp;
+      gameState.score += sp;
+      gameState.responseTimes.push(elapsed);
+      this.choiceStartTime = null;
+    }
     this.showNode(choice.next);
   }
 
@@ -710,6 +749,22 @@ class EndScene extends Phaser.Scene {
       fontSize: '36px', color: ratingColor, fontStyle: 'bold'
     }).setOrigin(0.5);
 
+    // Speed breakdown
+    const times = gameState.responseTimes;
+    const decisionScore = score - gameState.speedScore;
+    const avgTime = times.length
+      ? times.reduce((a, b) => a + b, 0) / times.length
+      : 0;
+    const fmt = (n) => (n >= 0 ? '+' : '') + n;
+
+    let breakdown = `Decisions  ${fmt(decisionScore)}     ·     Speed  ${fmt(gameState.speedScore)}`;
+    if (times.length) {
+      breakdown += `     ·     Avg response  ${avgTime.toFixed(1)}s (${speedLabel(avgTime)})`;
+    }
+    this.add.text(W/2, 332, breakdown, {
+      fontSize: '13px', color: '#9aa7c2', letterSpacing: '1px'
+    }).setOrigin(0.5);
+
     // Per-scenario summary
     this.add.text(W/2, 355, 'YOUR DECISIONS', {
       fontSize: '12px', color: '#8892b0', letterSpacing: '3px', fontStyle: 'bold'
@@ -741,9 +796,7 @@ class EndScene extends Phaser.Scene {
 
     // Buttons
     makePrimaryButton(this, W/2 - 110, H - 60, '↻  PLAY AGAIN', 200, 48, () => {
-      gameState.scenarioIndex = 0;
-      gameState.score = 0;
-      gameState.results = [];
+      resetGameState();
       this.scene.start('ScenarioScene');
     });
 
