@@ -63,7 +63,7 @@ export async function getBattleStandings(
 
     if (battle.metric === 'total_points') {
       const { data: entries } = await client
-        .from('leaderboard_entries')
+        .from('leaderboard')
         .select('total_points')
         .eq('org_id', battle.org_id)
         .eq('department', department)
@@ -91,7 +91,7 @@ export async function getBattleStandings(
       }
     } else if (battle.metric === 'avg_score') {
       const { data: entries } = await client
-        .from('leaderboard_entries')
+        .from('leaderboard')
         .select('modules_completed')
         .eq('org_id', battle.org_id)
         .eq('department', department)

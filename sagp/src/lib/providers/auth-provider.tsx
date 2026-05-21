@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { getCurrentProfile } from '@/lib/auth/actions';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setProfile, setMembership, setIsLoading } = useAuthStore();
@@ -20,12 +19,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (user) {
           setUser(user);
 
-          const result = await getCurrentProfile();
-          if (result.success && result.profile) {
-            setProfile(result.profile);
-            if (result.membership) {
-              setMembership(result.membership);
-            }
+          const response = await fetch('/api/auth/profile');
+          if (response.ok) {
+            const data = await response.json();
+            setProfile(data.profile ?? null);
+            setMembership((data.organizations?.[0] ?? null) as any);
           }
         }
       } catch (error) {
@@ -43,12 +41,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);
-        const result = await getCurrentProfile();
-        if (result.success && result.profile) {
-          setProfile(result.profile);
-          if (result.membership) {
-            setMembership(result.membership);
+        try {
+          const response = await fetch('/api/auth/profile');
+          if (response.ok) {
+            const data = await response.json();
+            setProfile(data.profile ?? null);
+            setMembership((data.organizations?.[0] ?? null) as any);
           }
+        } catch (error) {
+          console.error('Failed to fetch profile on auth change:', error);
         }
       } else {
         setUser(null);

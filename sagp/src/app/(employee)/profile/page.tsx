@@ -74,26 +74,25 @@ export default function ProfilePage() {
 
   const displayName = profile
     ? `${profile.first_name} ${profile.last_name}`.trim() || profile.email
-    : 'Loading…';
+    : 'Loading...';
 
   return (
-    <div className="space-y-6 p-8">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white">Profile</h1>
-        <p className="mt-1 text-slate-400">Manage your personal information</p>
+    <div className="min-h-full p-6 text-white">
+      <div className="mx-auto mb-0 max-w-2xl border border-cyan-300/20 bg-slate-900 px-4 py-3 text-center shadow-2xl">
+        <h1 className="font-heading text-2xl font-bold text-white sagp-neon-text">Profile</h1>
+        <p className="mt-1 text-sm sagp-text-muted">Manage your personal information</p>
       </div>
 
-      <div className="max-w-xl space-y-6">
+      <div className="mx-auto max-w-2xl space-y-4 border-x border-b border-cyan-300/15 bg-slate-900/60 p-4 shadow-2xl">
         {/* Avatar + name card */}
-        <Card className="border-slate-700 bg-slate-800">
-          <div className="flex items-center gap-4 p-6 border-b border-slate-700">
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-linear-to-br from-teal-400 to-teal-600">
-              <User className="h-8 w-8 text-white" />
+        <Card>
+          <div className="flex flex-col items-center gap-3 border-b border-cyan-300/15 bg-cyan-300/5 p-6 text-center">
+            <div className="flex h-20 w-20 items-center justify-center border border-cyan-300/30 bg-cyan-300/10 shadow-lg">
+              <User className="h-10 w-10 sagp-text-cyan" />
             </div>
             <div>
-              <p className="text-lg font-semibold text-white">{displayName}</p>
-              <p className="text-sm text-slate-400 capitalize">
+              <p className="text-lg font-bold text-white">{displayName}</p>
+              <p className="text-sm capitalize sagp-text-muted">
                 {membership?.org_role?.replace('_', ' ') || 'Employee'}
                 {membership?.department ? ` · ${membership.department}` : ''}
               </p>
@@ -101,15 +100,15 @@ export default function ProfilePage() {
           </div>
 
           {/* Personal information */}
-          <div className="p-6 space-y-4">
+          <div className="space-y-4 p-6">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-white">Personal Information</h3>
+              <h3 className="font-bold text-white">Personal Information</h3>
               {!isEditing && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsEditing(true)}
-                  className="text-teal-400 hover:text-teal-300"
+                  className="border border-cyan-300/25 bg-cyan-300/10 px-3 sagp-text-cyan hover:bg-cyan-300/20"
                 >
                   <Pencil className="mr-1 h-4 w-4" />
                   Edit
@@ -119,69 +118,69 @@ export default function ProfilePage() {
 
             {/* First name */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">First Name</label>
+              <label className="mb-1 block text-center text-sm font-bold text-white">First Name</label>
               <Input
                 name="first_name"
                 value={formData.first_name}
                 onChange={handleChange}
                 disabled={!isEditing}
-                className="border-slate-600 bg-slate-700 text-white disabled:opacity-60"
+                className="text-center disabled:opacity-60"
               />
             </div>
 
             {/* Last name */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Last Name</label>
+              <label className="mb-1 block text-center text-sm font-bold text-white">Last Name</label>
               <Input
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
                 disabled={!isEditing}
-                className="border-slate-600 bg-slate-700 text-white disabled:opacity-60"
+                className="text-center disabled:opacity-60"
               />
             </div>
 
             {/* Display name */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">
-                Display Name <span className="text-slate-500">(shown on leaderboard)</span>
+              <label className="mb-1 block text-center text-sm font-bold text-white">
+                Display Name <span className="font-normal sagp-text-muted">(shown on leaderboard)</span>
               </label>
               <Input
                 name="display_name"
                 value={formData.display_name}
                 onChange={handleChange}
                 disabled={!isEditing}
-                className="border-slate-600 bg-slate-700 text-white disabled:opacity-60"
+                className="text-center disabled:opacity-60"
               />
             </div>
 
             {/* Email (read-only) */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Email</label>
+              <label className="mb-1 block text-center text-sm font-bold text-white">Email</label>
               <Input
                 value={profile?.email || ''}
                 disabled
-                className="border-slate-600 bg-slate-700 text-slate-400 disabled:opacity-60"
+                className="text-center disabled:opacity-60"
               />
-              <p className="mt-1 text-xs text-slate-500">Email address cannot be changed</p>
+              <p className="mt-1 text-center text-xs sagp-text-muted">Email address cannot be changed</p>
             </div>
 
             {/* Department (read-only) */}
             {membership?.department && (
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Department</label>
+                <label className="mb-1 block text-center text-sm font-bold text-white">Department</label>
                 <Input
                   value={membership.department}
                   disabled
-                  className="border-slate-600 bg-slate-700 text-slate-400 disabled:opacity-60"
+                  className="text-center disabled:opacity-60"
                 />
-                <p className="mt-1 text-xs text-slate-500">Contact your admin to change your department</p>
+                <p className="mt-1 text-center text-xs sagp-text-muted">Contact your admin to change your department</p>
               </div>
             )}
 
             {/* Save / Cancel buttons */}
             {isEditing && (
-              <div className="flex gap-3 pt-2 border-t border-slate-700">
+              <div className="flex gap-3 border-t border-cyan-300/15 pt-4">
                 <Button
                   onClick={handleSave}
                   disabled={isSaving}
@@ -189,9 +188,14 @@ export default function ProfilePage() {
                   className="flex-1"
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? 'Saving…' : 'Save Changes'}
+                  {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
-                <Button onClick={handleCancel} variant="ghost" disabled={isSaving}>
+                <Button
+                  onClick={handleCancel}
+                  variant="ghost"
+                  disabled={isSaving}
+                  className="border border-cyan-300/25 bg-white/5 text-white hover:bg-white/10"
+                >
                   <X className="mr-1 h-4 w-4" />
                   Cancel
                 </Button>
@@ -201,26 +205,26 @@ export default function ProfilePage() {
         </Card>
 
         {/* Role & org info */}
-        <Card className="border-slate-700 bg-slate-800">
+        <Card>
           <div className="p-6">
-            <h3 className="mb-4 font-semibold text-white">Account Details</h3>
+            <h3 className="mb-4 text-center font-bold text-white">Account Details</h3>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Role</span>
+              <div className="flex justify-between border-t border-cyan-300/15 pt-3 first:border-t-0 first:pt-0">
+                <span className="font-bold sagp-text-muted">Role</span>
                 <span className="capitalize text-white">
                   {membership?.org_role?.replace('_', ' ') || 'Employee'}
                 </span>
               </div>
               {membership?.department && (
-                <div className="flex justify-between border-t border-slate-700 pt-3">
-                  <span className="text-slate-400">Department</span>
+                <div className="flex justify-between border-t border-cyan-300/15 pt-3">
+                  <span className="font-bold sagp-text-muted">Department</span>
                   <span className="text-white">{membership.department}</span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-slate-700 pt-3">
-                <span className="text-slate-400">Account ID</span>
-                <span className="font-mono text-xs text-slate-500">
-                  {profile?.id?.slice(0, 8)}…
+              <div className="flex justify-between border-t border-cyan-300/15 pt-3">
+                <span className="font-bold sagp-text-muted">Account ID</span>
+                <span className="font-mono text-xs sagp-text-muted">
+                  {profile?.id?.slice(0, 8)}...
                 </span>
               </div>
             </div>
