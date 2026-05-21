@@ -1,10 +1,13 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge-ui';
 import { Gamepad2, Shield, Clock, Award } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 const GAMES = [
   {
@@ -18,18 +21,7 @@ const GAMES = [
     icon:        '🎣',
     href:        '/game/phishing',
     available:   true,
-  },
-  {
-    id:          'phishing-rpg',
-    title:       'Phishing RPG',
-    description: 'Play a role-based phishing detection adventure. Make choices, protect your team, and learn to spot spoofed messages in action.',
-    category:    'Role Playing',
-    difficulty:  'Medium',
-    estimatedMins: 7,
-    points:      650,
-    icon:        '🛡️',
-    href:        '/phishing-rpg',
-    available:   true,
+    matchTitles:  ['Phishing Simulator'],
   },
   {
     id:          '3d-escape',
@@ -42,10 +34,63 @@ const GAMES = [
     icon:        '🕹️',
     href:        '/3dGame',
     available:   true,
+    matchTitles:  ['3D Cyber Escape', 'Cyber Escape'],
   },
 ];
 
+interface LatestSession {
+  score: number | null;
+  passed: boolean | null;
+  ended_at: string | null;
+  modules:
+    | {
+        title: string;
+      }
+    | null;
+}
+
 export default function GamesPage() {
+  const { user, isLoading } = useAuth();
+  const [latestByGame, setLatestByGame] = useState<Record<string, LatestSession>>({});
+
+  useEffect(() => {
+    if (isLoading || !user) return;
+
+    const loadLatestScores = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('game_sessions')
+        .select('score, passed, ended_at, modules:module_id(title)')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('ended_at', { ascending: false });
+
+      const sessions = ((data as unknown[]) || []).map((row) => {
+        const session = row as Omit<LatestSession, 'modules'> & {
+          modules: LatestSession['modules'] | LatestSession['modules'][] | null;
+        };
+
+        return {
+          ...session,
+          modules: Array.isArray(session.modules) ? session.modules[0] || null : session.modules,
+        };
+      });
+
+      const nextLatest: Record<string, LatestSession> = {};
+      for (const game of GAMES) {
+        const latest = sessions.find((session) =>
+          game.matchTitles.some((title) =>
+            (session.modules?.title || '').toLowerCase().includes(title.toLowerCase())
+          )
+        );
+        if (latest) nextLatest[game.id] = latest;
+      }
+      setLatestByGame(nextLatest);
+    };
+
+    loadLatestScores();
+  }, [isLoading, user]);
+
   return (
     <div className="space-y-6 p-8">
       {/* Header */}
@@ -73,6 +118,29 @@ export default function GamesPage() {
               {/* Title & description */}
               <h2 className="mb-2 text-lg font-bold text-white">{game.title}</h2>
               <p className="mb-4 text-sm leading-relaxed text-slate-400">{game.description}</p>
+
+              {latestByGame[game.id] ? (
+                <div className="mb-4 rounded border border-cyan-300/20 bg-cyan-950/30 px-3 py-2 text-xs text-slate-200">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>Last result</span>
+                    <span className="font-semibold text-cyan-200">
+                      {latestByGame[game.id].score || 0} pts
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-3 text-slate-400">
+                    <span>{latestByGame[game.id].passed ? 'Cleared' : 'Review needed'}</span>
+                    <span>
+                      {latestByGame[game.id].ended_at
+                        ? new Date(latestByGame[game.id].ended_at || '').toLocaleDateString()
+                        : 'Completed'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-4 rounded border border-slate-700 bg-slate-900/50 px-3 py-2 text-xs text-slate-500">
+                  No completed run yet
+                </div>
+              )}
 
               {/* Meta row */}
               <div className="flex items-center gap-4 text-xs text-slate-500">

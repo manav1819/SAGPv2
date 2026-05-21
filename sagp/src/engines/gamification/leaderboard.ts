@@ -45,7 +45,7 @@ export async function updateLeaderboard(
 
   // Upsert org leaderboard
   const { data: orgLeaderboard } = await client
-    .from('leaderboard_entries')
+    .from('leaderboard')
     .select()
     .eq('user_id', userId)
     .eq('org_id', orgId)
@@ -54,7 +54,7 @@ export async function updateLeaderboard(
 
   if (orgLeaderboard) {
     await client
-      .from('leaderboard_entries')
+      .from('leaderboard')
       .update({
         total_points: totalPoints,
         badges_earned: badges?.length || 0,
@@ -64,7 +64,7 @@ export async function updateLeaderboard(
       })
       .eq('id', orgLeaderboard.id);
   } else {
-    await client.from('leaderboard_entries').insert({
+    await client.from('leaderboard').insert({
       user_id: userId,
       org_id: orgId,
       department: membership?.department || null,
@@ -81,7 +81,7 @@ export async function updateLeaderboard(
   // Update department leaderboard if applicable
   if (membership?.department) {
     const { data: deptLeaderboard } = await client
-      .from('leaderboard_entries')
+      .from('leaderboard')
       .select()
       .eq('user_id', userId)
       .eq('org_id', orgId)
@@ -91,7 +91,7 @@ export async function updateLeaderboard(
 
     if (deptLeaderboard) {
       await client
-        .from('leaderboard_entries')
+        .from('leaderboard')
         .update({
           total_points: totalPoints,
           badges_earned: badges?.length || 0,
@@ -101,7 +101,7 @@ export async function updateLeaderboard(
         })
         .eq('id', deptLeaderboard.id);
     } else {
-      await client.from('leaderboard_entries').insert({
+      await client.from('leaderboard').insert({
         user_id: userId,
         org_id: orgId,
         department: membership.department,
@@ -125,7 +125,7 @@ async function recalculateRanks(orgId: string): Promise<void> {
 
   // Org scope
   const { data: orgEntries } = await client
-    .from('leaderboard_entries')
+    .from('leaderboard')
     .select()
     .eq('org_id', orgId)
     .eq('scope', 'org')
@@ -134,7 +134,7 @@ async function recalculateRanks(orgId: string): Promise<void> {
   if (orgEntries) {
     for (let i = 0; i < orgEntries.length; i++) {
       await client
-        .from('leaderboard_entries')
+        .from('leaderboard')
         .update({ rank: i + 1 })
         .eq('id', orgEntries[i].id);
     }
@@ -142,7 +142,7 @@ async function recalculateRanks(orgId: string): Promise<void> {
 
   // Department scope
   const { data: depts } = await client
-    .from('leaderboard_entries')
+    .from('leaderboard')
     .select('department')
     .eq('org_id', orgId)
     .eq('scope', 'department')
@@ -150,7 +150,7 @@ async function recalculateRanks(orgId: string): Promise<void> {
 
   for (const dept of depts || []) {
     const { data: deptEntries } = await client
-      .from('leaderboard_entries')
+      .from('leaderboard')
       .select()
       .eq('org_id', orgId)
       .eq('scope', 'department')
@@ -160,7 +160,7 @@ async function recalculateRanks(orgId: string): Promise<void> {
     if (deptEntries) {
       for (let i = 0; i < deptEntries.length; i++) {
         await client
-          .from('leaderboard_entries')
+          .from('leaderboard')
           .update({ rank: i + 1 })
           .eq('id', deptEntries[i].id);
       }
@@ -176,8 +176,8 @@ export async function getLeaderboard(
   const client = await createServiceRoleClient();
 
   let query = client
-    .from('leaderboard_entries')
-    .select()
+    .from('leaderboard')
+    .select('*, profiles:user_id(display_name, first_name, last_name)')
     .eq('org_id', orgId)
     .eq('scope', scope);
 

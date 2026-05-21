@@ -21,7 +21,7 @@ export async function checkAndAwardBadges(
 
   // Get user's current stats
   const { data: leaderboardEntry } = await client
-    .from('leaderboard_entries')
+    .from('leaderboard')
     .select()
     .eq('user_id', userId)
     .eq('org_id', orgId)
