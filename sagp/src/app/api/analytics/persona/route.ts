@@ -53,8 +53,10 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (!persona) {
+      // No persona yet — return provisional with zero confidence so the UI
+      // can render a "collecting data" state rather than a stale label.
       return NextResponse.json({
-        persona: 'careful_defender',
+        persona: 'provisional',
         confidence: 0,
         signals: {},
         assigned_at: new Date().toISOString(),

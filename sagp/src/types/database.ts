@@ -8,10 +8,27 @@ export type SessionStatus = 'in_progress' | 'completed' | 'abandoned' | 'paused'
 export type TimeBucket = 'less' | 'medium' | 'more';
 export type QuizResult = 'pass' | 'fail';
 export type RiskTier = 'low' | 'medium' | 'high' | 'critical';
-export type SecurityPersona = 'careful_defender' | 'speed_runner' | 'clicker' | 'guesser' | 'skeptic';
+// v2 behavioral persona taxonomy. Legacy DB enum values
+// (careful_defender, speed_runner, clicker, guesser, skeptic) remain in the
+// Postgres enum for backwards compatibility but are no longer produced by
+// the engine — they are mapped to 'provisional' if encountered.
+export type SecurityPersona =
+  | 'fast_clicker'
+  | 'sentinel'
+  | 'hesitant_worker'
+  | 'diligent_analyst'
+  | 'repeat_offender'
+  | 'provisional';
 export type BadgeType = 'achievement' | 'streak' | 'score' | 'completion' | 'phish_hunter' | 'speed_run' | 'special';
 export type ComplianceFramework = 'NIST' | 'ISO27001' | 'SOC2' | 'PCI_DSS' | 'HIPAA';
-export type PhishingEventType = 'email_opened' | 'link_clicked' | 'credentials_entered' | 'report_submitted';
+export type PhishingEventType =
+  | 'email_opened'
+  | 'link_clicked'
+  | 'credentials_entered'
+  | 'report_submitted'
+  | 'attachment_opened'
+  | 'report_after_click'
+  | 'ignored';
 export type GameEventType = 'answer' | 'hint_used' | 'life_lost' | 'phish_click' | 'report_submitted' | 'drag_drop_attempt';
 export type LeaderboardScope = 'global' | 'org' | 'department' | 'weekly';
 
