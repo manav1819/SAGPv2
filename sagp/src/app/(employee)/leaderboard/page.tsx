@@ -15,6 +15,11 @@ interface LeaderboardEntry {
   badges_earned: number;
   streak_days: number;
   modules_completed: number;
+  profiles?: {
+    display_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
 }
 
 const SCOPES = [
@@ -51,7 +56,11 @@ export default function LeaderboardPage() {
     if (entry.user_id === user?.id) {
       return profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'You';
     }
-    return `Player ${entry.user_id.slice(0, 8)}`;
+    return (
+      entry.profiles?.display_name ||
+      `${entry.profiles?.first_name || ''} ${entry.profiles?.last_name || ''}`.trim() ||
+      `Player ${entry.user_id.slice(0, 8)}`
+    );
   };
 
   return (

@@ -27,9 +27,8 @@ export class Player {
     this.sprite.setCollideWorldBounds(false);
     this._useSheet = hasSheet;
 
-    // Drop shadow
+    // Drop shadow — NOT in _roomCleanup; it persists with the player across rooms
     this.shadow = scene.add.ellipse(x, y + 14, 20, 8, 0x000000, 0.35).setDepth(9);
-    scene._roomCleanup.push(this.shadow);
 
     this.keys = scene.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.UP,

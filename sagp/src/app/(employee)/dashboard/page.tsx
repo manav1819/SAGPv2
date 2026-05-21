@@ -190,7 +190,7 @@ export default function DashboardPage() {
 
           <Card>
             <div className="border-b border-cyan-300/15 p-6">
-              <h3 className="font-semibold text-white">Recent Completed Games</h3>
+              <h3 className="font-semibold text-white">Recent Game Results</h3>
             </div>
             <div className="divide-y divide-cyan-300/10">
               {sessions.slice(0, 5).map((session) => (
@@ -202,6 +202,11 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
+                    {typeof session.game_state?.accuracy === 'number' && (
+                      <span className="text-sm sagp-text-muted">
+                        {session.game_state.accuracy}% accuracy
+                      </span>
+                    )}
                     <Badge variant={session.passed ? 'success' : 'destructive'}>
                       {session.passed ? 'Cleared' : 'Review Needed'}
                     </Badge>
