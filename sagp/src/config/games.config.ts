@@ -141,4 +141,20 @@ export const GAMES: GameConfig[] = [
     active: true,
     icon: '🏢',
   },
+  {
+    id: 'social-engineering',
+    title: "Don't Get Played",
+    description:
+      'Five branching real-world scenarios — vishing calls, spear-phishing emails, tailgating, USB drops, and help-desk pretexting. Make the call, see the consequence, and learn to spot the manipulator before it is too late.',
+    type: 'iframe',
+    category: 'Social Engineering',
+    difficulty: 2,
+    maxScore: 75,
+    estimatedMinutes: 7,
+    // NOTE: folder name contains spaces — encode the URL or rename the folder
+    // to `social-engineering-game` for cleaner routing.
+    iframeUrl: '/Social%20engineering%20game/social-engineering-gameV2.html',
+    active: true,
+    icon: '🎭',
+  },
 ];
