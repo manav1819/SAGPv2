@@ -7,7 +7,7 @@ export async function updateLeaderboard(
 ): Promise<void> {
   const client = await createServiceRoleClient();
 
-  // Get user's organization membership to know department
+  // Get user's department
   const { data: membership } = await client
     .from('org_memberships')
     .select('department')
@@ -15,23 +15,24 @@ export async function updateLeaderboard(
     .eq('org_id', orgId)
     .single();
 
-  // Calculate user's stats
+  // Calculate total points from all completed sessions
   const { data: sessions } = await client
     .from('game_sessions')
     .select('score, passed')
     .eq('user_id', userId)
-    .eq('org_id', orgId);
+    .eq('org_id', orgId)
+    .eq('status', 'completed');
 
   const totalPoints = sessions?.reduce((sum, s) => sum + (s.score || 0), 0) || 0;
 
   const { data: badges } = await client
     .from('user_badges')
-    .select()
+    .select('id')
     .eq('user_id', userId);
 
   const { data: progress } = await client
     .from('progress')
-    .select()
+    .select('id')
     .eq('user_id', userId)
     .eq('org_id', orgId)
     .eq('status', 'completed');
@@ -43,10 +44,10 @@ export async function updateLeaderboard(
     .eq('org_id', orgId)
     .single();
 
-  // Upsert org leaderboard
+  // Upsert org-scope leaderboard row
   const { data: orgLeaderboard } = await client
     .from('leaderboard')
-    .select()
+    .select('id')
     .eq('user_id', userId)
     .eq('org_id', orgId)
     .eq('scope', 'org')
@@ -74,15 +75,14 @@ export async function updateLeaderboard(
       streak_days: streak?.current_streak || 0,
       modules_completed: progress?.length || 0,
       rank: 0,
-      updated_at: new Date().toISOString(),
     });
   }
 
-  // Update department leaderboard if applicable
+  // Upsert department-scope leaderboard row if user has a department
   if (membership?.department) {
     const { data: deptLeaderboard } = await client
       .from('leaderboard')
-      .select()
+      .select('id')
       .eq('user_id', userId)
       .eq('org_id', orgId)
       .eq('scope', 'department')
@@ -111,7 +111,6 @@ export async function updateLeaderboard(
         streak_days: streak?.current_streak || 0,
         modules_completed: progress?.length || 0,
         rank: 0,
-        updated_at: new Date().toISOString(),
       });
     }
   }
@@ -123,10 +122,10 @@ export async function updateLeaderboard(
 async function recalculateRanks(orgId: string): Promise<void> {
   const client = await createServiceRoleClient();
 
-  // Org scope
+  // Org scope: rank by total_points descending
   const { data: orgEntries } = await client
     .from('leaderboard')
-    .select()
+    .select('id')
     .eq('org_id', orgId)
     .eq('scope', 'org')
     .order('total_points', { ascending: false });
@@ -140,21 +139,23 @@ async function recalculateRanks(orgId: string): Promise<void> {
     }
   }
 
-  // Department scope
-  const { data: depts } = await client
+  // Department scope: rank within each department
+  const { data: deptRows } = await client
     .from('leaderboard')
     .select('department')
     .eq('org_id', orgId)
     .eq('scope', 'department')
-    .neq('department', null);
+    .not('department', 'is', null);
 
-  for (const dept of depts || []) {
+  const uniqueDepts = [...new Set((deptRows || []).map((r) => r.department))];
+
+  for (const dept of uniqueDepts) {
     const { data: deptEntries } = await client
       .from('leaderboard')
-      .select()
+      .select('id')
       .eq('org_id', orgId)
       .eq('scope', 'department')
-      .eq('department', dept.department)
+      .eq('department', dept)
       .order('total_points', { ascending: false });
 
     if (deptEntries) {
@@ -177,7 +178,7 @@ export async function getLeaderboard(
 
   let query = client
     .from('leaderboard')
-    .select('*, profiles:user_id(display_name, first_name, last_name)')
+    .select('*')
     .eq('org_id', orgId)
     .eq('scope', scope);
 

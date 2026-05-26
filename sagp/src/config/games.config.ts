@@ -127,6 +127,25 @@ export const GAMES: GameConfig[] = [
     href: '/game/phishing',
   },
   {
+    id: 'vishing',
+    title: 'Vishing Simulator',
+    description:
+      'Can you spot the vishing calls? Test your instincts against 10 real-world call scenarios. Each correct identification keeps you in the game — one wrong move costs a life.',
+    type: 'iframe',
+    thumbnail: '/vishing-game/thumbnail.png',
+    category: 'Security Awareness',
+    difficulty: 2,
+    maxScore: 500,
+    estimatedMinutes: 5,
+    iframeUrl: '/Social-Engineering/social-engineering-gameV2.html',
+    active: true,
+    icon: '🎣',
+    // Keep routing to the dedicated page — it handles result-saving and
+    // the completion certificate.  Remove this override once the generic
+    // IframeGame component is wired to /api/game/vishing/complete.
+    href: '/game/vishing',
+  },
+  {
     id: '3d-office',
     title: 'CyberGuard: Office Security',
     description:

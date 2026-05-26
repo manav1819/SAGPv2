@@ -16,3 +16,10 @@ build/
 
 # temporary exports
 _style_import_tmp/
+
+.claude/
+CLAUDE.md
+sagp/CHANGELOG_production_integration.md
+sagp/graphify-out/
+sagp/supabase/migrations/001_production_fixes.sql
+sagp/supabase/migrations/20260526000000_fix_vishing_game_id_case.sql
