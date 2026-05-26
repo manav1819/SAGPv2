@@ -25,11 +25,21 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  // ── Public (auth) routes ────────────────────────────────────────────────
-  const authRoutes = ['/login', '/register', '/sso-callback', '/oauth'];
+  // Public (auth) routes
+  // IMPORTANT: /auth/sso-callback is the OAuth redirectTo URL used by
+  // signInWithSSO() in actions.ts (NEXT_PUBLIC_APP_URL + /auth/sso-callback).
+  // It must be listed here so Supabase can exchange the auth code BEFORE a
+  // session exists. Without it the middleware bounces the unauthenticated
+  // callback to /login, breaking SSO entirely.
+  const authRoutes = [
+    '/login',
+    '/register',
+    '/sso-callback',
+    '/auth/sso-callback',
+    '/oauth',
+  ];
   if (authRoutes.some(r => path.startsWith(r))) {
     if (user) {
-      // Already logged in — check if they need to complete their profile first
       const { data: membership } = await supabase
         .from('org_memberships')
         .select('org_id')
@@ -37,13 +47,11 @@ export async function updateSession(request: NextRequest) {
         .maybeSingle();
 
       if (!membership) {
-        // New OAuth user: redirect to complete-profile
         const url = request.nextUrl.clone();
         url.pathname = '/complete-profile';
         return NextResponse.redirect(url);
       }
 
-      // Fully registered → send to the right dashboard
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -67,7 +75,7 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // /complete-profile — authenticated users only, never redirect mid-setup
+  // /complete-profile: authenticated users only, never redirect mid-setup
   if (path.startsWith('/complete-profile')) {
     if (!user) {
       const url = request.nextUrl.clone();
@@ -77,7 +85,7 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // ── All other routes require authentication ─────────────────────────────
+  // All other routes require authentication
   if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
@@ -85,7 +93,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // ── Fetch role for protected-route checks (one query, reused below) ─────
+  // Fetch role for protected-route checks
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
@@ -94,18 +102,17 @@ export async function updateSession(request: NextRequest) {
 
   const role = profile?.role ?? 'employee';
 
-  // ── Superadmin-only routes (/superadmin/**) ──────────────────────────────
+  // Superadmin-only routes
   if (path.startsWith('/superadmin')) {
     if (role !== 'superadmin') {
       const url = request.nextUrl.clone();
-      // Redirect to their appropriate dashboard
       url.pathname = role === 'org_admin' ? '/admin/dashboard' : '/dashboard';
       return NextResponse.redirect(url);
     }
     return supabaseResponse;
   }
 
-  // ── Admin routes — org_admin and superadmin only ─────────────────────────
+  // Admin routes: org_admin and superadmin only
   if (path.startsWith('/admin')) {
     if (!['superadmin', 'org_admin'].includes(role)) {
       const url = request.nextUrl.clone();
@@ -115,9 +122,17 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // ── Employee routes — block admins from accidentally landing here ────────
-  // (Admins who visit /dashboard, /modules, etc. get redirected to admin panel)
-  const employeeRoutes = ['/dashboard', '/modules', '/leaderboard', '/badges', '/profile', '/game'];
+  // Employee routes: redirect admins to their panel if they land here.
+  // /games added alongside existing employee route guards.
+  const employeeRoutes = [
+    '/dashboard',
+    '/modules',
+    '/games',
+    '/leaderboard',
+    '/badges',
+    '/profile',
+    '/game',
+  ];
   if (employeeRoutes.some(r => path.startsWith(r))) {
     if (role === 'superadmin') {
       const url = request.nextUrl.clone();

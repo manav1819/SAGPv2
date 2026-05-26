@@ -74,7 +74,7 @@ export interface GameConfig {
 
   /**
    * Optional emoji icon shown on the library card.
-   * Falls back to a generic 🎮 when omitted.
+   * Falls back to a generic game controller when omitted.
    */
   icon?: string;
 
@@ -83,7 +83,7 @@ export interface GameConfig {
    * When omitted, defaults to /play/<id> (the generic dynamic route).
    *
    * Use this only for games that have a bespoke page with custom
-   * result-saving or certificate logic (e.g. the phishing simulator).
+   * result-saving or certificate logic.
    */
   href?: string;
 }
@@ -120,30 +120,21 @@ export const GAMES: GameConfig[] = [
     estimatedMinutes: 5,
     iframeUrl: '/phishing-game/index.html',
     active: true,
-    icon: '🎣',
-    // Keep routing to the dedicated page — it handles result-saving and
-    // the completion certificate.  Remove this override once the generic
-    // IframeGame component is wired to /api/game/phishing/complete.
-    href: '/game/phishing',
+    icon: '\u{1F3A3}',
   },
   {
     id: 'vishing',
     title: 'Vishing Simulator',
     description:
-      'Can you spot the vishing calls? Test your instincts against 10 real-world call scenarios. Each correct identification keeps you in the game — one wrong move costs a life.',
+      'Receive a suspicious call — is it a real support agent or a social engineer? Work through branching real-world vishing scenarios and learn to hang up on the right ones.',
     type: 'iframe',
-    thumbnail: '/vishing-game/thumbnail.png',
     category: 'Security Awareness',
     difficulty: 2,
     maxScore: 500,
     estimatedMinutes: 5,
-    iframeUrl: '/Social-Engineering/social-engineering-gameV2.html',
+    iframeUrl: '/vishing/social-engineering-game.html',
     active: true,
-    icon: '🎣',
-    // Keep routing to the dedicated page — it handles result-saving and
-    // the completion certificate.  Remove this override once the generic
-    // IframeGame component is wired to /api/game/vishing/complete.
-    href: '/game/vishing',
+    icon: '\u{1F4DE}',
   },
   {
     id: '3d-office',
@@ -158,22 +149,6 @@ export const GAMES: GameConfig[] = [
     estimatedMinutes: 10,
     iframeUrl: '/3dGame/index.html',
     active: true,
-    icon: '🏢',
-  },
-  {
-    id: 'social-engineering',
-    title: "Don't Get Played",
-    description:
-      'Five branching real-world scenarios — vishing calls, spear-phishing emails, tailgating, USB drops, and help-desk pretexting. Make the call, see the consequence, and learn to spot the manipulator before it is too late.',
-    type: 'iframe',
-    category: 'Social Engineering',
-    difficulty: 2,
-    maxScore: 75,
-    estimatedMinutes: 7,
-    // NOTE: folder name contains spaces — encode the URL or rename the folder
-    // to `social-engineering-game` for cleaner routing.
-    iframeUrl: '/Social%20engineering%20game/social-engineering-gameV2.html',
-    active: true,
-    icon: '🎭',
+    icon: '\u{1F3E2}',
   },
 ];
