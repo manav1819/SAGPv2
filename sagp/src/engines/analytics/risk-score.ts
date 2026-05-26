@@ -193,12 +193,47 @@ export function computeTrainingSubscore(
   const correctReactions: number[] = [];
   const wrongReactions: number[] = [];
 
-  for (const e of events) {
-    const w = decayWeight(new Date(e.occurred_at), now, HALF_LIFE_DAYS.behavior);
-    totalW += w;
-    if (!e.is_correct) wrongW += w;
-    if (e.reaction_ms && e.reaction_ms > 0) {
-      (e.is_correct ? correctReactions : wrongReactions).push(e.reaction_ms);
+  let reactionTimeDeviation = 0;
+  if (reactionEvents && reactionEvents.length > 1) {
+    const reactions = reactionEvents
+      .map((e) => e.reaction_ms || 0)
+      .filter((r) => r > 0);
+
+    const mean = reactions.reduce((a, b) => a + b, 0) / reactions.length;
+    const variance =
+      reactions.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+      reactions.length;
+    const stdDev = Math.sqrt(variance);
+
+    // Normalize to 0-100 scale
+    reactionTimeDeviation = Math.min((stdDev / mean) * 100, 100);
+  }
+
+  // 4. Remediation Failure Rate: % of assigned remediations not completed
+  const { data: remediationLogs } = await client
+    .from('remediation_log')
+    .select('remediation_module_id')
+    .eq('user_id', userId)
+    .eq('org_id', orgId)
+    .not('remediation_module_id', 'is', null);
+
+  let remediationFailureRate = 0;
+  if (remediationLogs && remediationLogs.length > 0) {
+    const moduleIds = remediationLogs
+      .map((r) => r.remediation_module_id)
+      .filter((m): m is string => m !== null && m !== undefined);
+
+    if (moduleIds.length > 0) {
+      const { data: completed } = await client
+        .from('progress')
+        .select()
+        .eq('user_id', userId)
+        .eq('org_id', orgId)
+        .eq('status', 'completed')
+        .in('module_id', moduleIds);
+
+      remediationFailureRate =
+        ((moduleIds.length - (completed?.length || 0)) / moduleIds.length) * 100;
     }
   }
   const wrongRate = totalW > 0 ? (wrongW / totalW) * 100 : 0;
