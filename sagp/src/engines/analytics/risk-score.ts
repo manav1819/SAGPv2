@@ -178,6 +178,11 @@ export function computePhishingSubscore(
  * S_train ∈ [0, 100]
  * Combines incorrect-answer rate with reaction-time z-score *conditioned on*
  * correctness — fast + correct is not penalized; fast + wrong is.
+ *
+ * FIX (BUG-001): The original version was missing the accumulator loop entirely
+ * and contained dead async code copied from the old orchestrator, causing
+ * wrongRate and recklessSignal to always be 0. The training component was
+ * silently contributing zero to every score in production.
  */
 export function computeTrainingSubscore(
   events: TrainingEvent[],
@@ -187,59 +192,28 @@ export function computeTrainingSubscore(
     return { score: 50, sampleSize: 0, explanation: 'No training data — neutral baseline.' };
   }
 
-  // Time-weighted incorrect rate
+  // Time-weighted incorrect rate + reaction-time buckets by correctness
   let wrongW = 0;
   let totalW = 0;
   const correctReactions: number[] = [];
   const wrongReactions: number[] = [];
 
-  let reactionTimeDeviation = 0;
-  if (reactionEvents && reactionEvents.length > 1) {
-    const reactions = reactionEvents
-      .map((e) => e.reaction_ms || 0)
-      .filter((r) => r > 0);
-
-    const mean = reactions.reduce((a, b) => a + b, 0) / reactions.length;
-    const variance =
-      reactions.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
-      reactions.length;
-    const stdDev = Math.sqrt(variance);
-
-    // Normalize to 0-100 scale
-    reactionTimeDeviation = Math.min((stdDev / mean) * 100, 100);
-  }
-
-  // 4. Remediation Failure Rate: % of assigned remediations not completed
-  const { data: remediationLogs } = await client
-    .from('remediation_log')
-    .select('remediation_module_id')
-    .eq('user_id', userId)
-    .eq('org_id', orgId)
-    .not('remediation_module_id', 'is', null);
-
-  let remediationFailureRate = 0;
-  if (remediationLogs && remediationLogs.length > 0) {
-    const moduleIds = remediationLogs
-      .map((r) => r.remediation_module_id)
-      .filter((m): m is string => m !== null && m !== undefined);
-
-    if (moduleIds.length > 0) {
-      const { data: completed } = await client
-        .from('progress')
-        .select()
-        .eq('user_id', userId)
-        .eq('org_id', orgId)
-        .eq('status', 'completed')
-        .in('module_id', moduleIds);
-
-      remediationFailureRate =
-        ((moduleIds.length - (completed?.length || 0)) / moduleIds.length) * 100;
+  for (const e of events) {
+    const w = decayWeight(new Date(e.occurred_at), now, HALF_LIFE_DAYS.behavior);
+    totalW += w;
+    if (!e.is_correct) {
+      wrongW += w;
+      if (e.reaction_ms != null) wrongReactions.push(e.reaction_ms);
+    } else {
+      if (e.reaction_ms != null) correctReactions.push(e.reaction_ms);
     }
   }
+
   const wrongRate = totalW > 0 ? (wrongW / totalW) * 100 : 0;
 
   // Reckless-speed signal: median reaction time among WRONG answers,
   // expressed as how much faster than correct-baseline (lower = more reckless).
+  // Only fires when there are enough samples for a meaningful median on both sides.
   let recklessSignal = 0;
   if (wrongReactions.length >= 3 && correctReactions.length >= 3) {
     const med = (xs: number[]) => {
@@ -248,8 +222,9 @@ export function computeTrainingSubscore(
     };
     const wrongMed = med(wrongReactions);
     const correctMed = med(correctReactions);
-    // If wrong answers are >30% faster than correct, that's a recklessness penalty up to +25
-    const ratio = wrongMed / correctMed;
+    // If wrong answers are >30% faster than correct, that's a recklessness penalty up to +25.
+    // ratio < 1 means wrong answers were faster (more reckless).
+    const ratio = wrongMed / Math.max(correctMed, 1);
     recklessSignal = clamp(0, 25, (1 - ratio) * 50);
   }
 
@@ -550,13 +525,16 @@ export async function computeRiskScore(
     user_id: userId,
     org_id: orgId,
     total_score: explanation.total_score,
-    phishing_susceptibility: Math.round(explanation.components[0].raw_subscore),
-    incorrect_answer_rate: Math.round(explanation.components[1].raw_subscore),
-    reaction_time_deviation: Math.round(explanation.components[3].raw_subscore), // trend slot
-    remediation_failure_rate: Math.round(explanation.components[2].raw_subscore),
+    phishing_susceptibility: Math.round(explanation.components[0].raw_subscore),    // [0] phishing
+    incorrect_answer_rate: Math.round(explanation.components[1].raw_subscore),      // [1] training
+    reaction_time_deviation: Math.round(explanation.components[1].raw_subscore),    // [1] training (FIX BUG-002: was [3] trend)
+    remediation_failure_rate: Math.round(explanation.components[2].raw_subscore),   // [2] remediation
     risk_tier: explanation.risk_tier,
     computed_at: explanation.computed_at,
-    // Requires adding these columns in a migration:
+    // FIX (BUG-002): components[3] is the trend subscore, not the training subscore.
+    // reaction_time_deviation maps to the training component at index [1].
+    // Previously, this field was storing trend data silently corrupting historical records.
+    // formula_version and explanation_json require a DB migration (see RISK_ENGINE_AUDIT.md).
     formula_version: explanation.formula_version,
     explanation_json: explanation as unknown as Record<string, unknown>,
   };
@@ -596,8 +574,12 @@ function buildWeeklyComposites(
     .map(([k, v]) => {
       const pAvg = v.p.length ? v.p.reduce((a, b) => a + b, 0) / v.p.length : 0;
       const tAvg = v.t.length ? v.t.reduce((a, b) => a + b, 0) / v.t.length : 0;
-      // Composite in 0..100 space, neutral at 50
-      const composite = clamp(0, 100, 50 + 50 * pAvg + 25 * tAvg);
+      // Composite in 0..100 space, neutral at 50.
+      // FIX (GAP-003): original formula 50 + 50*pAvg + 25*tAvg was asymmetric —
+      // training had half the influence of phishing and the scales were mismatched.
+      // Normalized blend: both axes contribute equally, tAvg re-centered to [-1,+1].
+      const tCentered = 2 * tAvg - 1; // map [0,1] → [-1,+1] (0=all correct, 1=all wrong)
+      const composite = clamp(0, 100, 50 + 37.5 * pAvg + 37.5 * tCentered);
       return { week_start: k, composite };
     });
 }

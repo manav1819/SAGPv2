@@ -31,6 +31,22 @@ export default class GameOverScene extends Phaser.Scene {
     const W = this.scale.width;
     const H = this.scale.height;
 
+    // ── SAGP Integration Bridge ─────────────────────────────────────────
+    // Fire immediately when GameOverScene loads so the parent Next.js app
+    // receives the completed session result.
+    if (window.parent !== window && !window.__sagpPhishingResultSent) {
+      window.__sagpPhishingResultSent = true;
+      window.parent.postMessage({
+        type:     'GAME_COMPLETE',
+        score:    this.sessionData.finalScore ?? 0,
+        passed:   this.won,
+        maxScore: 500,
+        accuracy: this.sessionData.accuracy ?? 0,
+        avgResponseTimeMs: this.sessionData.avgResponseTimeMs ?? 0,
+      }, window.location.origin || '*');
+    }
+    // ────────────────────────────────────────────────────────────────────
+
     this._buildBackground(W, H);
     this.scrollSpeeds = { far: 0.04, mid: 0.10, fg: 0.22 };
 
@@ -202,13 +218,20 @@ export default class GameOverScene extends Phaser.Scene {
             font-size:14px; font-family:'Segoe UI',Arial,sans-serif;
             font-weight:bold; cursor:pointer; letter-spacing:0.5px;
           ">▶  Play Again</button>
+          <button id="dashboardBtn" style="
+            flex:1; padding:12px;
+            background: linear-gradient(135deg, #0d2e3a, #0d3a5e);
+            color:#00d4ff; border:1.5px solid #00d4ff; border-radius:8px;
+            font-size:14px; font-family:'Segoe UI',Arial,sans-serif;
+            font-weight:bold; cursor:pointer; letter-spacing:0.5px;
+          ">🏠  Dashboard</button>
           <button id="downloadBtn" style="
             flex:1; padding:12px;
             background: linear-gradient(135deg, #1a3d14, #0d2a0a);
             color:#ffffff; border:1.5px solid #22cc66; border-radius:8px;
             font-size:14px; font-family:'Segoe UI',Arial,sans-serif;
             font-weight:bold; cursor:pointer; letter-spacing:0.5px;
-          ">📥  Download CSV</button>
+          ">📥  CSV</button>
         </div>
 
         <!-- Footer note -->
@@ -217,7 +240,7 @@ export default class GameOverScene extends Phaser.Scene {
           font-size:10px; color:#334455; text-align:center; line-height:1.5;
         ">
           Session ID: ${sd.sessionId || '—'}  &nbsp;·&nbsp;  ${new Date(sd.sessionDate || Date.now()).toLocaleString()}<br>
-          Data will be stored in Supabase (integration pending).
+          Results submitted to SAGP dashboard.
         </div>
       </div>
     `;
@@ -234,6 +257,8 @@ export default class GameOverScene extends Phaser.Scene {
     this.domPanel.on('click', (e) => {
       if (e.target.id === 'playAgainBtn') {
         this._playAgain();
+      } else if (e.target.id === 'dashboardBtn') {
+        this._goToDashboard();
       } else if (e.target.id === 'downloadBtn') {
         this._downloadCSV();
       }
@@ -261,6 +286,24 @@ export default class GameOverScene extends Phaser.Scene {
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('Start');
     });
+  }
+
+  // ----------------------------------------------------------
+  //  Go to Dashboard  (re-fires postMessage then defers to parent)
+  // ----------------------------------------------------------
+  _goToDashboard() {
+    if (window.parent !== window) {
+      // Always re-send in case the auto-fire at create() was blocked
+      window.__sagpPhishingResultSent = true;
+      window.parent.postMessage({
+        type:     'GAME_COMPLETE',
+        score:    this.sessionData.finalScore ?? 0,
+        passed:   this.won,
+        maxScore: 500,
+        accuracy: this.sessionData.accuracy ?? 0,
+        avgResponseTimeMs: this.sessionData.avgResponseTimeMs ?? 0,
+      }, window.location.origin || '*');
+    }
   }
 
   // ----------------------------------------------------------

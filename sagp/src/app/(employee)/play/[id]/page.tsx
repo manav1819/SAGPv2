@@ -1,7 +1,7 @@
 'use client';
 
 import { notFound } from 'next/navigation';
-import { use } from 'react';
+import { use, useState } from 'react';
 import { GAMES } from '@/config/games.config';
 import { IframeGame } from '@/components/games/IframeGame';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -31,11 +31,14 @@ export default function PlayPage({ params }: PlayPageProps) {
     ? `${profile.first_name} ${profile.last_name}`.trim()
     : 'Agent';
 
-  // sessionRef: simple unique id per play session
-  const sessionRef =
+  // sessionRef must be stable for the lifetime of this page mount.
+  // Using useState with a lazy initialiser prevents regeneration on re-renders
+  // (which would change the URL passed to the iframe and break result matching).
+  const [sessionRef] = useState<string>(() =>
     typeof crypto !== 'undefined'
       ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
 
   if (game.type === 'iframe' && game.iframeUrl) {
     return (

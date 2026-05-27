@@ -16,8 +16,10 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
   PHISH_SEVERITY,
   HALF_LIFE_DAYS,
+  ARM_BASE,
   type PhishingEvent,
   type TrainingEvent,
+  type RoleContext,
 } from './risk-score';
 import type { SecurityPersona } from '@/types/database';
 
@@ -114,6 +116,10 @@ export interface PersonaResult {
   signals: PersonaSignals;
   remediation: RemediationAction;
   explanation: string;
+  /** Euclidean drift from previous classification. null if first classification. */
+  drift_delta: number | null;
+  /** ARM multiplier for this user's role — escalates remediation for privileged roles. */
+  arm_multiplier: number;
 }
 
 const clamp = (lo: number, hi: number, x: number) => Math.max(lo, Math.min(hi, x));
@@ -194,17 +200,31 @@ export function computeVigilance(phishing: PhishingEvent[], now: Date = new Date
   return wSum > 0 ? clamp(-1, 1, valSum / wSum) : 0;
 }
 
-/** Counts consecutive failed phishing sims looking back 90 days. */
+/**
+ * Counts consecutive failed phishing simulations looking back 90 days.
+ *
+ * FIX (BUG-003): The original version iterated all phishing events sorted
+ * newest-first and broke on ANY non-fail event, including `email_opened` and
+ * `report_submitted`. This caused the streak to reset after a report even if
+ * the employee clicked both simulations. We now filter to simulation-outcome
+ * events only (click/cred/attachment/report/ignored) before counting, so that
+ * intermediate telemetry events don't break the streak chain.
+ */
 export function computeFailureStreak(phishing: PhishingEvent[], now: Date = new Date()): number {
   const cutoff = new Date(now.getTime() - 90 * 24 * 3600 * 1000);
   const failTypes = new Set(['link_clicked', 'attachment_opened', 'credentials_entered']);
+  // Only simulation outcome events count toward or against the streak.
+  const outcomeTypes = new Set([
+    'link_clicked', 'attachment_opened', 'credentials_entered',
+    'report_submitted', 'report_after_click', 'ignored',
+  ]);
   const recent = phishing
-    .filter((e) => new Date(e.occurred_at) >= cutoff)
+    .filter((e) => new Date(e.occurred_at) >= cutoff && outcomeTypes.has(e.event_type))
     .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime());
   let streak = 0;
   for (const e of recent) {
     if (failTypes.has(e.event_type)) streak += 1;
-    else break;
+    else break; // first non-fail outcome ends the consecutive streak
   }
   return streak;
 }
@@ -219,6 +239,10 @@ export function classifyPersona(input: {
   phishing: PhishingEvent[];
   training: TrainingEvent[];
   now?: Date;
+  /** Role context for ARM-aware escalation. Defaults to standard if omitted. */
+  role?: RoleContext;
+  /** Previous axes from last classification — used to compute drift_delta. */
+  previousAxes?: { velocity: number; vigilance: number } | null;
 }): PersonaResult {
   const now = input.now ?? new Date();
   const velocity = computeVelocity(input.phishing, input.training, now);
@@ -228,8 +252,28 @@ export function classifyPersona(input: {
 
   const signals: PersonaSignals = { velocity, vigilance, failure_streak, total_events };
 
+  // GAP-005 fix: Euclidean drift from previous axes, null on first classification.
+  const drift_delta =
+    input.previousAxes != null
+      ? Math.round(
+          Math.hypot(
+            velocity - input.previousAxes.velocity,
+            vigilance - input.previousAxes.vigilance
+          ) * 1000
+        ) / 1000
+      : null;
+
+  // GAP-006 fix: ARM multiplier propagated into result for privileged-role escalation.
+  const armMultiplier =
+    ARM_BASE[(input.role?.role_band ?? 'standard') as keyof typeof ARM_BASE] ??
+    ARM_BASE.standard;
+
+  // For privileged admins/execs, lower the repeat-offender streak threshold.
+  const effectiveStreakThreshold =
+    armMultiplier >= 1.5 ? REPEAT_OFFENDER_STREAK - 1 : REPEAT_OFFENDER_STREAK;
+
   // Off-axis override
-  if (failure_streak >= REPEAT_OFFENDER_STREAK) {
+  if (failure_streak >= effectiveStreakThreshold) {
     return {
       formula_version: PERSONA_FORMULA_VERSION,
       persona: 'repeat_offender',
@@ -237,7 +281,9 @@ export function classifyPersona(input: {
       confidence: Math.min(1, 0.6 + 0.1 * failure_streak),
       signals,
       remediation: PERSONA_PLAYBOOK.repeat_offender,
-      explanation: `Repeat-offender override: ${failure_streak} consecutive failed sims in 90d.`,
+      explanation: `Repeat-offender override: ${failure_streak} consecutive failed sims in 90d (threshold=${effectiveStreakThreshold} for ARM ${armMultiplier.toFixed(2)}).`,
+      drift_delta,
+      arm_multiplier: armMultiplier,
     };
   }
 
@@ -254,6 +300,8 @@ export function classifyPersona(input: {
       signals,
       remediation: PERSONA_PLAYBOOK.provisional,
       explanation: `Insufficient separation: events=${total_events}, |v|=${Math.abs(velocity).toFixed(2)}, |g|=${Math.abs(vigilance).toFixed(2)}.`,
+      drift_delta,
+      arm_multiplier: armMultiplier,
     };
   }
 
@@ -276,7 +324,9 @@ export function classifyPersona(input: {
     confidence: Math.round(confidence * 100) / 100,
     signals,
     remediation: PERSONA_PLAYBOOK[persona],
-    explanation: `Quadrant (v=${velocity.toFixed(2)}, g=${vigilance.toFixed(2)}) over ${total_events} events.`,
+    explanation: `Quadrant (v=${velocity.toFixed(2)}, g=${vigilance.toFixed(2)}) over ${total_events} events. ARM=${armMultiplier.toFixed(2)}.`,
+    drift_delta,
+    arm_multiplier: armMultiplier,
   };
 }
 
@@ -287,7 +337,9 @@ export async function classifyPersonaFromDb(
   orgId: string
 ): Promise<PersonaResult> {
   const client = await createServiceRoleClient();
-  const [phishRes, trainRes] = await Promise.all([
+
+  // GAP-005 fix: Fetch previous axes and GAP-006 fix: fetch role_band for ARM.
+  const [phishRes, trainRes, prevPersonaRes, profileRes] = await Promise.all([
     client
       .from('phishing_events')
       .select('event_type, created_at, time_to_click_seconds, metadata')
@@ -297,6 +349,20 @@ export async function classifyPersonaFromDb(
       .select('is_correct, reaction_ms, created_at')
       .eq('user_id', userId)
       .eq('event_type', 'answer'),
+    // Latest persona row to compute drift delta.
+    client
+      .from('security_personas')
+      .select('signals')
+      .eq('user_id', userId)
+      .eq('org_id', orgId)
+      .order('assigned_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    client
+      .from('profiles')
+      .select('role_band, external_facing, recent_permission_elevation, departing_window')
+      .eq('id', userId)
+      .maybeSingle(),
   ]);
 
   const phishing: PhishingEvent[] = (phishRes.data ?? []).map((e: any) => ({
@@ -313,7 +379,23 @@ export async function classifyPersonaFromDb(
     occurred_at: e.created_at,
   }));
 
-  const result = classifyPersona({ phishing, training });
+  // Extract previous axes from the stored signals blob.
+  const prevSignals = prevPersonaRes.data?.signals as Record<string, any> | null;
+  const previousAxes =
+    prevSignals?.axes &&
+    typeof prevSignals.axes.velocity === 'number' &&
+    typeof prevSignals.axes.vigilance === 'number'
+      ? { velocity: prevSignals.axes.velocity as number, vigilance: prevSignals.axes.vigilance as number }
+      : null;
+
+  const role: RoleContext = {
+    role_band: (profileRes.data?.role_band as string) || 'standard',
+    external_facing: profileRes.data?.external_facing ?? false,
+    recent_permission_elevation: profileRes.data?.recent_permission_elevation ?? false,
+    departing_window: profileRes.data?.departing_window ?? false,
+  };
+
+  const result = classifyPersona({ phishing, training, role, previousAxes });
 
   // Persist (append-only for audit). Stash everything in the existing
   // `signals` JSON column so no further schema changes are needed.
@@ -328,6 +410,8 @@ export async function classifyPersonaFromDb(
       axes: result.axes,
       remediation: result.remediation,
       explanation: result.explanation,
+      drift_delta: result.drift_delta,       // GAP-005 fix: drift persisted for trend charts
+      arm_multiplier: result.arm_multiplier, // GAP-006 fix: ARM persisted for escalation context
     },
     assigned_at: new Date().toISOString(),
   });
@@ -351,13 +435,25 @@ async function triggerRemediation(
   const r = result.remediation;
 
   // 1. Enroll user in remediation modules.
-  //    Real table is `remediation_log` (singular). session_id was made nullable
-  //    by the v2 migration to allow persona-driven enrollments that aren't
-  //    tied to a quiz session. time_bucket/quiz_result/action_taken are still
-  //    NOT NULL — populate them with the persona-driven equivalents.
+  //    GAP-004 fix: Check for existing PENDING assignments for each module_slug
+  //    before inserting to avoid duplicate enrollments when classifyPersonaFromDb
+  //    is called multiple times per week (e.g., after each game session).
   const now = new Date().toISOString();
   const dueAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
-  const enrollRows = r.module_assignments.map((moduleSlug) => ({
+
+  // Fetch currently active (incomplete) assignments for this user+org.
+  const { data: existingAssignments } = await client
+    .from('remediation_log')
+    .select('module_slug')
+    .eq('user_id', userId)
+    .eq('org_id', orgId)
+    .is('completed_at', null)
+    .in('module_slug', r.module_assignments);
+
+  const alreadyEnrolled = new Set((existingAssignments ?? []).map((a: any) => a.module_slug));
+  const newModules = r.module_assignments.filter((slug) => !alreadyEnrolled.has(slug));
+
+  const enrollRows = newModules.map((moduleSlug) => ({
     user_id: userId,
     org_id: orgId,
     session_id: null,

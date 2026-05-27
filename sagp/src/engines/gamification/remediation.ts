@@ -119,8 +119,10 @@ export async function logRemediation(
     }
   }
 
+  // FIX: table is 'remediation_log' (singular). Previous name 'remediation_logs'
+  // caused all remediation inserts to silently fail with a 404-equivalent from PostgREST.
   const { data: log, error } = await client
-    .from('remediation_logs')
+    .from('remediation_log')
     .insert({
       session_id: sessionId,
       user_id: session.user_id,

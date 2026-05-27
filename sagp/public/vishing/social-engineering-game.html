@@ -672,6 +672,20 @@ class EndScene extends Phaser.Scene {
 
     // Score → rating
     const score = gameState.score;
+
+    // ── SAGP Integration Bridge ───────────────────────────────────────────
+    // Fire once when EndScene loads so the parent Next.js app receives the
+    // result even if the player never clicks a button.
+    if (window.parent !== window && !window.__sagpVishingResultSent) {
+      window.__sagpVishingResultSent = true;
+      window.parent.postMessage({
+        type:    'GAME_COMPLETE',
+        score:   score,
+        passed:  score >= 35,
+        maxScore: 100,
+      }, window.location.origin || '*');
+    }
+    // ─────────────────────────────────────────────────────────────────────
     let rating, ratingColor, ratingDesc;
     if (score >= 65) {
       rating = 'CYBER SENTINEL'; ratingColor = '#00ff88';
@@ -748,16 +762,30 @@ class EndScene extends Phaser.Scene {
     });
 
     const homeBtn = this.add.container(W/2 + 110, H - 60);
-    const hr = this.add.rectangle(0, 0, 200, 48, 0x1a2347)
-      .setStrokeStyle(2, 0x3a4a7a, 1)
+    const hr = this.add.rectangle(0, 0, 200, 48, 0x0d3a5e)
+      .setStrokeStyle(2, 0x00d4ff, 1)
       .setInteractive({ useHandCursor: true });
-    const ht = this.add.text(0, 0, 'HOME', {
-      fontSize: '15px', color: '#cdd6e3', fontStyle: 'bold', letterSpacing: '3px'
+    const ht = this.add.text(0, 0, '🏠  DASHBOARD', {
+      fontSize: '14px', color: '#00d4ff', fontStyle: 'bold', letterSpacing: '1px'
     }).setOrigin(0.5);
     homeBtn.add([hr, ht]);
-    hr.on('pointerover', () => { hr.setFillStyle(0x253261); hr.setStrokeStyle(2, 0x00d4ff, 1); });
-    hr.on('pointerout', () => { hr.setFillStyle(0x1a2347); hr.setStrokeStyle(2, 0x3a4a7a, 1); });
-    hr.on('pointerdown', () => this.scene.start('MenuScene'));
+    hr.on('pointerover', () => { hr.setFillStyle(0x1a5276); hr.setStrokeStyle(2, 0x7fdfff, 1); });
+    hr.on('pointerout', () => { hr.setFillStyle(0x0d3a5e); hr.setStrokeStyle(2, 0x00d4ff, 1); });
+    hr.on('pointerdown', () => {
+      // Re-fire in case auto-fire was blocked, then let parent handle navigation
+      if (window.parent !== window) {
+        window.__sagpVishingResultSent = true;
+        window.parent.postMessage({
+          type:    'GAME_COMPLETE',
+          score:   score,
+          passed:  score >= 35,
+          maxScore: 100,
+        }, window.location.origin || '*');
+      } else {
+        // Standalone: just go back to menu
+        this.scene.start('MenuScene');
+      }
+    });
   }
 }
 
