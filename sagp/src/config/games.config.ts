@@ -151,4 +151,18 @@ export const GAMES: GameConfig[] = [
     active: true,
     icon: '\u{1F3E2}',
   },
+  {
+    id: 'carnival-shooter',
+    title: 'Cyber Carnival: Threat Hunt',
+    description:
+      'Step into a neon cyberpunk carnival and shoot the threats — weak passwords, phishing emails, mystery USBs — while protecting the good targets. Rack up your combo, survive boss waves, and prove your security instincts.',
+    type: 'iframe',
+    category: 'Threat Detection',
+    difficulty: 2,
+    maxScore: 10000,
+    estimatedMinutes: 5,
+    iframeUrl: '/CarnivalShooter/CarnivalShooter/index.html',
+    active: true,
+    icon: '\u{1F3AF}',
+  },
 ];
