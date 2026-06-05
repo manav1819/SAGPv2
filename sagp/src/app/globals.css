@@ -10,14 +10,6 @@
   --slate-darker: var(--sagp-bg-deep);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--teal-primary);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -126,6 +118,7 @@ a {
   border: 1px solid var(--sagp-border-cyan);
   background: linear-gradient(135deg, rgba(15, 15, 46, 0.86), rgba(10, 10, 26, 0.72));
   box-shadow: var(--sagp-shadow-card);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   border-radius: var(--sagp-radius);
 }
@@ -165,6 +158,7 @@ a {
   z-index: 40;
   border-bottom: 1px solid var(--sagp-border-cyan);
   background: rgba(7, 7, 19, 0.86);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   box-shadow: 0 0 26px rgba(0, 245, 255, 0.08);
 }
@@ -223,17 +217,20 @@ a {
 }
 
 .sagp-confetti span {
-  --i: 0;
+  --confetti-left: 0%;
+  --confetti-delay: 0s;
+  --confetti-rotate: 0deg;
+  --confetti-end-x: 0rem;
   position: absolute;
   top: -1rem;
-  left: calc((var(--i) * 6%) - 4%);
+  left: var(--confetti-left);
   width: 0.45rem;
   height: 0.8rem;
   background: var(--sagp-cyan);
   box-shadow: 0 0 12px rgba(0, 245, 255, 0.55);
-  transform: rotate(calc(var(--i) * 24deg));
+  transform: rotate(var(--confetti-rotate));
   animation: sagpConfettiFall 1.9s ease-in-out infinite;
-  animation-delay: calc(var(--i) * 0.07s);
+  animation-delay: var(--confetti-delay);
 }
 
 .sagp-confetti span:nth-child(3n) {
@@ -254,7 +251,7 @@ a {
   }
   100% {
     opacity: 0;
-    transform: translate3d(calc((var(--i) - 9) * 0.35rem), 22rem, 0) rotate(720deg);
+    transform: translate3d(var(--confetti-end-x), 22rem, 0) rotate(720deg);
   }
 }
 

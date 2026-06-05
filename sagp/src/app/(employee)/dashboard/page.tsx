@@ -9,7 +9,6 @@ import {
 import {
   LayoutDashboard,
   Shield,
-  BookOpen,
   Trophy,
   Flame,
   TrendingUp,
@@ -49,13 +48,9 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="sagp-heading-1 flex items-center gap-3">
-            <LayoutDashboard className="h-7 w-7 sagp-text-primary" />
-            Dashboard
-          </h1>
-          <p className="sagp-text-muted mt-1">
+          <h1 className="sagp-text-muted mt-1 text-2xl font-semibold">
             Welcome back, <span className="sagp-neon-text">{displayName}</span>
-          </p>
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -83,7 +78,7 @@ export default function DashboardPage() {
               ? `Tier: ${data.riskTier.toUpperCase()}`
               : isLoading
               ? 'Computing…'
-              : 'Computed after first module'
+              : 'Computed after first game'
           }
           accent="purple"
           valueClass={riskTierColor}
@@ -95,7 +90,7 @@ export default function DashboardPage() {
           hint={
             data?.streakDays
               ? `${data.streakDays} day${data.streakDays !== 1 ? 's' : ''} in a row`
-              : 'Complete a module to start'
+              : 'Complete a game to start'
           }
           accent="orange"
         />
@@ -107,10 +102,10 @@ export default function DashboardPage() {
           accent="yellow"
         />
         <StatCard
-          icon={<BookOpen className="h-5 w-5" />}
-          label="Modules Done"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          label="Completed"
           value={data?.modulesCompleted != null ? String(data.modulesCompleted) : '0'}
-          hint="Training modules completed"
+          hint="Security games completed"
           accent="cyan"
         />
       </div>
@@ -168,7 +163,6 @@ export default function DashboardPage() {
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 gap-3">
-            <QuickAction href="/modules" icon={<BookOpen className="h-4 w-4" />} title="Browse Modules" desc="Pick up a training module" />
             <QuickAction href="/games"   icon={<Swords className="h-4 w-4" />}   title="Play a Game"    desc="Gamified security challenges" />
             <QuickAction href="/leaderboard" icon={<Trophy className="h-4 w-4" />} title="Leaderboard" desc="See how you rank" />
           </div>
@@ -204,9 +198,9 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-              <BookOpen className="h-8 w-8 sagp-text-muted opacity-40" />
+              <Swords className="h-8 w-8 sagp-text-muted opacity-40" />
               <p className="sagp-text-muted text-sm">No activity yet.</p>
-              <a href="/modules" className="sagp-link text-xs">Start your first module →</a>
+              <a href="/games" className="sagp-link text-xs">Start your first game →</a>
             </div>
           )}
         </div>
@@ -259,12 +253,12 @@ function QuickAction({ href, icon, title, desc }: { href: string; icon: React.Re
 
 function getPersonaDescription(persona: string): string {
   const map: Record<string, string> = {
-    fast_clicker:     'Tends to act quickly without verifying. Auto-enrolled in urgency-awareness modules.',
+    fast_clicker:     'Tends to act quickly without verifying. Assigned urgency-awareness practice.',
     sentinel:         'Fast and vigilant — reports threats proactively. Receiving advanced scenarios.',
-    hesitant_worker:  'Deliberate but passive. Confidence-building modules have been assigned.',
+    hesitant_worker:  'Deliberate but passive. Confidence-building practice has been assigned.',
     diligent_analyst: 'Careful and vigilant. Receiving red-team challenge content.',
     repeat_offender:  'Persistent failure pattern detected. Mandatory live training assigned.',
-    provisional:      'More data needed to classify behaviour. Keep completing modules.',
+    provisional:      'More data needed to classify behaviour. Keep completing games.',
   };
   return map[persona] ?? 'Persona classification in progress.';
 }

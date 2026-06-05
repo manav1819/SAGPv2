@@ -6,7 +6,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
-  BookOpen,
   Users,
   BarChart3,
   FileText,
@@ -27,7 +26,6 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
-  { label: 'Modules', href: '/admin/modules', icon: <BookOpen className="h-4 w-4" /> },
   { label: 'Users', href: '/admin/users', icon: <Users className="h-4 w-4" /> },
   { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-4 w-4" /> },
   { label: 'Reports', href: '/admin/reports', icon: <FileText className="h-4 w-4" /> },

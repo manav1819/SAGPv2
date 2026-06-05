@@ -9,7 +9,7 @@ import { Gamepad2, AlertTriangle } from 'lucide-react';
  *
  * Generic game launcher. Expects ?moduleId=<uuid> in the query string.
  * The actual game rendering lives in the IframeGame / PhaserGame / ScormGame
- * components — wire them up once the module data fetch is in place.
+ * components — wire them up once the game data fetch is in place.
  */
 function GameLauncher() {
   const searchParams = useSearchParams();
@@ -19,10 +19,10 @@ function GameLauncher() {
     return (
       <div className="sagp-card flex flex-col items-center justify-center gap-3 py-20 text-center">
         <AlertTriangle className="h-10 w-10 text-yellow-400" />
-        <p className="sagp-heading-3 sagp-text-muted">No module specified</p>
+        <p className="sagp-heading-3 sagp-text-muted">No game specified</p>
         <p className="sagp-text-muted text-sm">
           Please launch a game from the{' '}
-          <a href="/modules" className="sagp-link">Modules</a> page.
+          <a href="/games" className="sagp-link">Games</a> page.
         </p>
       </div>
     );
@@ -31,9 +31,9 @@ function GameLauncher() {
   return (
     <div className="sagp-card flex flex-col items-center justify-center gap-3 py-20 text-center">
       <Gamepad2 className="h-12 w-12 sagp-text-primary animate-pulse" />
-      <p className="sagp-heading-3 sagp-neon-text">Loading module…</p>
-      <p className="sagp-text-muted text-sm font-mono text-xs">{moduleId}</p>
-      {/* TODO: Fetch module by id, then render <IframeGame />, <PhaserGame />, or <ScormGame /> */}
+      <p className="sagp-heading-3 sagp-neon-text">Loading game...</p>
+      <p className="sagp-text-muted font-mono text-xs">{moduleId}</p>
+      {/* TODO: Fetch game by id, then render <IframeGame />, <PhaserGame />, or <ScormGame /> */}
     </div>
   );
 }

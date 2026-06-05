@@ -1,10 +1,30 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 import { signInWithEmail, signInWithSSO } from '@/lib/auth/actions';
 import { useAuthStore } from '@/lib/stores/auth-store';
+
+const matrixBits = [
+  '0101101010010110',
+  '1010011100101101',
+  '0011010110100101',
+  '1100101011010010',
+  '0110010111010100',
+  '1001110100101011',
+  '0100111011010010',
+  '1110010100110101',
+  '0010110101101001',
+  '1011010010110010',
+  '0110100101110010',
+  '1101011010010100',
+  '0100101110011010',
+  '1010110010101101',
+  '0011101011010010',
+  '1101001010110100',
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,10 +34,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [isLoginComplete, setIsLoginComplete] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsLoginComplete(false);
     setIsPending(true);
     setIsLoading(true);
 
@@ -26,6 +48,7 @@ export default function LoginPage() {
       if (!result.success) {
         setError(result.error ?? 'Login failed');
       } else {
+        setIsLoginComplete(true);
         router.push('/dashboard');
       }
     } finally {
@@ -36,18 +59,37 @@ export default function LoginPage() {
 
   const handleSSO = async (provider: 'google' | 'azure' | 'okta') => {
     setError(null);
+    setIsLoginComplete(false);
     setIsPending(true);
     const result = await signInWithSSO(provider);
     if (!result.success || !result.url) {
       setError(result.error ?? 'SSO failed');
       setIsPending(false);
     } else {
-      window.location.href = result.url;
+      setIsLoginComplete(true);
+      window.location.assign(result.url);
     }
   };
 
   return (
-    <div className="sagp-card sagp-card-glow w-full p-8">
+    <div className={`sagp-card sagp-card-glow sagp-login-panel w-full p-8 ${isLoginComplete ? 'is-authenticated' : ''}`}>
+      <div className="sagp-login-matrix-flow" aria-hidden="true">
+        {matrixBits.map((bits, index) => (
+          <span
+            key={`${bits}-${index}`}
+            style={{
+              '--login-matrix-left': `${7 + index * 5.8}%`,
+              '--login-matrix-delay': `${index * -0.31}s`,
+              '--login-matrix-start-x': `${(index - 8) * -0.08}rem`,
+              '--login-matrix-end-x': `${(8 - index) * 0.16}rem`,
+            } as CSSProperties}
+          >
+            {bits}
+          </span>
+        ))}
+      </div>
+
+      <div className="sagp-login-content">
       {/* Brand */}
       <div className="mb-8 flex flex-col items-center gap-2">
         <div className="sagp-brand-mark h-12 w-12">
@@ -129,6 +171,7 @@ export default function LoginPage() {
           Create one
         </a>
       </p>
+      </div>
     </div>
   );
 }

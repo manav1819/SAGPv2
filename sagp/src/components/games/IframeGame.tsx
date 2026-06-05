@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trophy, Shield, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import type { GameConfig } from '@/config/games.config';
@@ -41,11 +41,19 @@ export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(AUTO_REDIRECT_SECONDS);
+  const [mounted, setMounted] = useState(false);
   const submittedRef = useRef(false); // prevent double-submit
 
-  const gameUrl = game.iframeUrl
-    ? `${game.iframeUrl}?playerName=${encodeURIComponent(playerName)}&sessionRef=${encodeURIComponent(sessionRef)}`
-    : '';
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const gameUrl = useMemo(() => {
+    if (!mounted || !game.iframeUrl) return '';
+    return `${game.iframeUrl}?playerName=${encodeURIComponent(playerName)}&sessionRef=${encodeURIComponent(
+      sessionRef
+    )}`;
+  }, [game.iframeUrl, mounted, playerName, sessionRef]);
 
   // Auto-redirect countdown after success
   useEffect(() => {
@@ -126,16 +134,22 @@ export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
 
       {/* Game frame */}
       <div className="flex-1 overflow-hidden">
-        {gameUrl ? (
-          <iframe
-            src={gameUrl}
-            className="h-full w-full border-0"
-            title={game.title}
-            allow="autoplay"
-          />
+        {mounted ? (
+          gameUrl ? (
+            <iframe
+              src={gameUrl}
+              className="h-full w-full border-0"
+              title={game.title}
+              allow="autoplay"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-slate-500">
+              Game URL not configured.
+            </div>
+          )
         ) : (
           <div className="flex h-full items-center justify-center text-slate-500">
-            Game URL not configured.
+            Loading game...
           </div>
         )}
       </div>
