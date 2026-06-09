@@ -151,4 +151,20 @@ export const GAMES: GameConfig[] = [
     active: true,
     icon: '\u{1F3E2}',
   },
+  {
+    id: 'cyberforge',
+    title: 'CyberForge',
+    description:
+      'Combine cybersecurity concepts like elements in an alchemy game. Merge tools, threats, and defences to discover 70 unique skills — from Phishing to Nation-State Attacks. Each discovery unlocks a real-world info card.',
+    type: 'iframe',
+    category: 'Security Awareness',
+    difficulty: 2,
+    maxScore: 3000,
+    estimatedMinutes: 15,
+    iframeUrl: '/cyberforge/index.html',
+    active: true,
+    icon: '\u26A1',
+  },
 ];
+
+// NOTE: entry appended by CyberForge feature addition
