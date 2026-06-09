@@ -179,4 +179,18 @@ export const GAMES: GameConfig[] = [
     active: true,
     icon: '\u{1F3AF}',
   },
+  {
+    id: 'human-firewall',
+    title: 'Operation Human Firewall',
+    description:
+      'Receive live, malicious phone calls from social engineers trying to steal credentials, money, and access. Identify the tactics, verify callers, protect information, and report incidents — before it\'s too late.',
+    type: 'phaser', // overridden by href — no Phaser scene used
+    category: 'Social Engineering',
+    difficulty: 2,
+    maxScore: 12000,
+    estimatedMinutes: 20,
+    href: '/game/human-firewall',
+    active: true,
+    icon: '📞',
+  },
 ];
