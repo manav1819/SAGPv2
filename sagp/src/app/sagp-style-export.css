@@ -159,11 +159,13 @@ body.sagp-body textarea,
 .sagp-glitch::before {
   color: var(--sagp-cyan);
   transform: translate(1px, 0);
+  -webkit-clip-path: inset(0 0 52% 0);
   clip-path: inset(0 0 52% 0);
 }
 .sagp-glitch::after {
   color: var(--sagp-purple);
   transform: translate(-1px, 0);
+  -webkit-clip-path: inset(48% 0 0 0);
   clip-path: inset(48% 0 0 0);
 }
 
@@ -173,6 +175,7 @@ body.sagp-body textarea,
   border: 1px solid var(--sagp-border-cyan);
   background: linear-gradient(135deg, rgba(15, 15, 46, 0.86), rgba(10, 10, 26, 0.72));
   box-shadow: var(--sagp-shadow-card);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   border-radius: var(--sagp-radius);
 }
@@ -356,6 +359,7 @@ body.sagp-body textarea,
   z-index: 40;
   border-bottom: 1px solid rgba(0, 245, 255, 0.15);
   background: rgba(7, 7, 19, 0.80);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
 .sagp-navbar-inner {
@@ -449,6 +453,7 @@ body.sagp-body textarea,
   display: none;
   border-top: 1px solid rgba(0, 245, 255, 0.15);
   background: rgba(7, 7, 19, 0.90);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   padding: 0.5rem;
 }
@@ -495,10 +500,13 @@ body.sagp-body textarea,
     repeating-linear-gradient(90deg, rgba(0, 245, 255, 0.04) 0 1px, transparent 1px 64px);
 }
 .sagp-matrix-rain span {
-  --i: 0;
+  --matrix-left: 0%;
+  --matrix-delay: 0s;
+  --matrix-opacity: 0.48;
+  --matrix-duration: 8s;
   position: absolute;
   top: -32rem;
-  left: calc((var(--i) * 3.75%) - 2%);
+  left: var(--matrix-left);
   width: 1rem;
   color: rgba(0, 245, 255, 0.72);
   font-family: var(--sagp-font-mono);
@@ -507,25 +515,123 @@ body.sagp-body textarea,
   text-shadow: 0 0 12px rgba(0, 245, 255, 0.85);
   writing-mode: vertical-rl;
   word-break: break-all;
-  opacity: calc(0.32 + ((var(--i) % 6) * 0.08));
-  animation: sagpMatrixFlow calc(8s + (var(--i) % 7) * 0.9s) linear infinite;
-  animation-delay: calc(var(--i) * -0.48s);
+  opacity: var(--matrix-opacity);
+  animation: sagpMatrixFlow var(--matrix-duration) linear infinite;
+  animation-delay: var(--matrix-delay);
 }
 .sagp-matrix-rain span:nth-child(3n) {
   color: rgba(125, 255, 107, 0.7);
+  --matrix-opacity: 0.62;
+  --matrix-duration: 9.6s;
 }
 .sagp-matrix-rain span:nth-child(4n) {
   font-size: 0.68rem;
+  --matrix-opacity: 0.42;
+  --matrix-duration: 10.8s;
 }
 .sagp-matrix-rain span:nth-child(5n) {
   color: rgba(191, 95, 255, 0.55);
+  --matrix-opacity: 0.56;
+  --matrix-duration: 11.4s;
 }
 .sagp-login-panel {
   position: relative;
   z-index: 1;
   width: min(100%, 28rem);
   padding: 1.5rem;
+  overflow: hidden;
   box-shadow: 0 0 70px rgba(0, 245, 255, 0.22), var(--sagp-shadow-card);
+}
+.sagp-login-panel::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0.5rem;
+  z-index: 0;
+  border: 1px solid rgba(57, 255, 20, 0.08);
+  background:
+    linear-gradient(180deg, rgba(57, 255, 20, 0.08), transparent 42%),
+    radial-gradient(circle at 50% 66%, rgba(0, 245, 255, 0.16), transparent 12rem);
+  opacity: 0.8;
+}
+.sagp-login-content {
+  position: relative;
+  z-index: 2;
+}
+.sagp-login-matrix-flow {
+  pointer-events: none;
+  position: absolute;
+  inset: 0 0 8.25rem;
+  z-index: 1;
+  overflow: hidden;
+  opacity: 0.74;
+  mix-blend-mode: screen;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 78%, transparent 100%);
+  transition: opacity 360ms ease, transform 360ms ease, filter 360ms ease;
+}
+.sagp-login-matrix-flow::before,
+.sagp-login-matrix-flow::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 74%;
+  height: 5rem;
+  transform: translateX(-50%);
+  border-radius: 999px 999px 0 0;
+  background: radial-gradient(ellipse at center, rgba(57, 255, 20, 0.34), rgba(0, 245, 255, 0.14) 46%, transparent 72%);
+  filter: blur(10px);
+}
+.sagp-login-matrix-flow::after {
+  bottom: -0.65rem;
+  height: 1.5rem;
+  background: rgba(57, 255, 20, 0.42);
+  filter: blur(16px);
+}
+.sagp-login-matrix-flow span {
+  --login-matrix-left: 0%;
+  --login-matrix-delay: 0s;
+  --login-matrix-start-x: 0rem;
+  --login-matrix-end-x: 0rem;
+  --login-matrix-opacity: 0.58;
+  --login-matrix-duration: 4.8s;
+  position: absolute;
+  top: -18rem;
+  left: var(--login-matrix-left);
+  width: 0.9rem;
+  color: rgba(57, 255, 20, 0.72);
+  font-family: var(--sagp-font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  writing-mode: vertical-rl;
+  word-break: break-all;
+  text-shadow: 0 0 10px rgba(57, 255, 20, 0.8), 0 0 22px rgba(0, 245, 255, 0.42);
+  opacity: var(--login-matrix-opacity);
+  animation: sagpLoginMatrixDrop var(--login-matrix-duration) linear infinite;
+  animation-delay: var(--login-matrix-delay);
+}
+.sagp-login-matrix-flow span:nth-child(4n + 1) {
+  color: rgba(0, 245, 255, 0.68);
+  font-size: 0.64rem;
+  --login-matrix-opacity: 0.5;
+  --login-matrix-duration: 5.2s;
+}
+.sagp-login-matrix-flow span:nth-child(5n + 2) {
+  color: rgba(191, 95, 255, 0.5);
+  --login-matrix-opacity: 0.44;
+  --login-matrix-duration: 5.7s;
+}
+.sagp-login-matrix-flow span:nth-child(2n) {
+  transform-origin: center bottom;
+  --login-matrix-opacity: 0.72;
+  --login-matrix-duration: 4.4s;
+}
+.sagp-login-panel.is-authenticated .sagp-login-matrix-flow {
+  opacity: 0;
+  filter: blur(6px);
+  transform: translateY(1rem);
 }
 
 @keyframes sagpMatrixFlow {
@@ -534,6 +640,30 @@ body.sagp-body textarea,
   }
   100% {
     transform: translate3d(0, 140vh, 0);
+  }
+}
+@keyframes sagpLoginMatrixDrop {
+  0% {
+    transform: translate3d(var(--login-matrix-start-x), -18rem, 0) scaleY(0.96);
+  }
+  72% {
+    opacity: 0.92;
+  }
+  100% {
+    transform: translate3d(var(--login-matrix-end-x), 34rem, 0) scaleY(1.08);
+    opacity: 0;
+  }
+}
+@keyframes sagpProfileMatrixFall {
+  0% {
+    transform: translate3d(var(--profile-matrix-start-x), -18rem, 0) scaleY(0.96);
+  }
+  74% {
+    opacity: 0.92;
+  }
+  100% {
+    transform: translate3d(var(--profile-matrix-end-x), 42rem, 0) scaleY(1.08);
+    opacity: 0;
   }
 }
 .sagp-login-header { margin-bottom: 2rem; text-align: center; }
@@ -723,8 +853,133 @@ body.sagp-body textarea,
 .sagp-risk-copy { margin: 0.5rem 0 0; max-width: 20rem; color: var(--sagp-text-muted); font-size: 0.875rem; line-height: 1.7; }
 
 /* Profile/admin widgets */
+.sagp-profile-page {
+  display: flex;
+  justify-content: center;
+}
+.sagp-profile-shell {
+  width: 100%;
+  display: grid;
+  gap: 1.5rem;
+}
 .sagp-profile-hero { padding: 1.5rem; }
 .sagp-profile-hero-row { display: flex; flex-direction: column; gap: 1.5rem; }
+.sagp-profile-hero-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 22rem;
+  display: grid;
+  place-items: center;
+  padding: 3rem 1.5rem;
+}
+.sagp-profile-hero-card::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(57, 255, 20, 0.16), transparent 20rem),
+    radial-gradient(circle at 50% 74%, rgba(0, 245, 255, 0.18), transparent 24rem),
+    linear-gradient(180deg, rgba(7, 7, 19, 0.32), rgba(7, 7, 19, 0.82));
+}
+.sagp-profile-hero-content {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 46rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+.sagp-profile-avatar {
+  width: 7rem;
+  height: 7rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--sagp-radius);
+  border: 1px solid rgba(57, 255, 20, 0.42);
+  background: linear-gradient(135deg, rgba(0, 245, 255, 0.14), rgba(57, 255, 20, 0.08));
+  box-shadow: 0 0 42px rgba(57, 255, 20, 0.18), inset 0 0 26px rgba(0, 245, 255, 0.1);
+  color: #fff;
+  font-family: var(--sagp-font-heading);
+  font-size: 2.4rem;
+  font-weight: 900;
+}
+.sagp-profile-matrix {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  opacity: 0.56;
+  mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, #000 56%, transparent 82%);
+  mask-image: radial-gradient(ellipse at center, #000 0%, #000 56%, transparent 82%);
+}
+.sagp-profile-matrix span {
+  --profile-matrix-left: 0%;
+  --profile-matrix-delay: 0s;
+  --profile-matrix-start-x: 0rem;
+  --profile-matrix-end-x: 0rem;
+  --profile-matrix-opacity: 0.5;
+  --profile-matrix-duration: 7s;
+  position: absolute;
+  top: -24rem;
+  left: var(--profile-matrix-left);
+  width: 1rem;
+  color: rgba(57, 255, 20, 0.72);
+  font-family: var(--sagp-font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.25;
+  writing-mode: vertical-rl;
+  word-break: break-all;
+  text-shadow: 0 0 10px rgba(57, 255, 20, 0.85), 0 0 24px rgba(0, 245, 255, 0.38);
+  opacity: var(--profile-matrix-opacity);
+  animation: sagpProfileMatrixFall var(--profile-matrix-duration) linear infinite;
+  animation-delay: var(--profile-matrix-delay);
+}
+.sagp-profile-matrix span:nth-child(3n) {
+  color: rgba(0, 245, 255, 0.66);
+  --profile-matrix-opacity: 0.66;
+  --profile-matrix-duration: 8.2s;
+}
+.sagp-profile-matrix span:nth-child(4n) {
+  font-size: 0.66rem;
+  --profile-matrix-opacity: 0.42;
+  --profile-matrix-duration: 9.4s;
+}
+.sagp-profile-matrix span:nth-child(5n) {
+  color: rgba(191, 95, 255, 0.48);
+  --profile-matrix-opacity: 0.5;
+  --profile-matrix-duration: 7.6s;
+}
+.sagp-profile-grid-expanded {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
+}
+.sagp-profile-wide-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+.sagp-profile-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border: 1px solid rgba(0, 245, 255, 0.12);
+  background: rgba(0, 245, 255, 0.04);
+  border-radius: var(--sagp-radius);
+  padding: 0.85rem;
+}
+.sagp-profile-field span:last-child {
+  overflow-wrap: anywhere;
+}
 .sagp-chart-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .sagp-chart-panel { height: 18rem; border: 1px solid rgba(0, 245, 255, 0.15); background: rgba(0, 0, 0, 0.20); border-radius: var(--sagp-radius); padding: 0.75rem; }
 .sagp-admin-denied { width: min(100% - 2rem, 48rem); margin-inline: auto; text-align: center; padding: 2rem; }
@@ -824,10 +1079,15 @@ body.sagp-body textarea,
   .sagp-dashboard-grid,
   .sagp-main-sidebar-grid,
   .sagp-profile-grid,
+  .sagp-profile-grid-expanded,
   .sagp-game-shell-grid { grid-template-columns: 1fr; }
   .sagp-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sagp-game-list,
   .sagp-module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sagp-profile-wide-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 @media (max-width: 767px) {
   .sagp-main { padding-top: 5rem; padding-bottom: 6.5rem; }
@@ -846,6 +1106,18 @@ body.sagp-body textarea,
   .sagp-risk-gauge { flex-direction: column; text-align: center; }
   .sagp-risk-copy { margin-inline: auto; }
   .sagp-hidden-mobile-inline { display: none; }
+  .sagp-profile-hero-card {
+    min-height: 20rem;
+    padding: 2rem 1rem;
+  }
+  .sagp-profile-avatar {
+    width: 5.5rem;
+    height: 5.5rem;
+    font-size: 2rem;
+  }
+  .sagp-profile-matrix {
+    opacity: 0.4;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

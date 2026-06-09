@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Carnival: Threat Hunt | SAGP</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; }
+        body {
+            background: #050510;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        #game-container { cursor: none; }
+        canvas { display: block; }
+
+        #loading-screen {
+            position: fixed; inset: 0;
+            background: #050510;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 9999;
+        }
+        #loading-screen h1 {
+            font-size: 3rem; color: #ff00ff;
+            text-shadow: 0 0 20px #ff00ff, 0 0 50px #ff00ff;
+            animation: ls-pulse 1s ease-in-out infinite alternate;
+            margin-bottom: 0.4rem;
+        }
+        #loading-screen p {
+            color: #00ffff; font-size: 0.9rem;
+            text-shadow: 0 0 10px #00ffff;
+            margin-bottom: 2rem; letter-spacing: 4px;
+        }
+        .ls-bar-bg {
+            width: 420px; height: 10px;
+            background: #1a0030; border: 1px solid #ff00ff;
+            border-radius: 5px; overflow: hidden;
+        }
+        .ls-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff00ff, #00ffff);
+            width: 0%; animation: ls-load 1.8s ease-in forwards;
+            box-shadow: 0 0 12px #ff00ff;
+        }
+        @keyframes ls-pulse { from { opacity: 0.6; } to { opacity: 1; } }
+        @keyframes ls-load  { to { width: 100%; } }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <h1>&#9889; CYBER CARNIVAL &#9889;</h1>
+        <p>THREAT HUNT &mdash; SAGP PLATFORM</p>
+        <div class="ls-bar-bg"><div class="ls-bar-fill"></div></div>
+    </div>
+
+    <div id="game-container"></div>
+    <script src="./phaser.js"></script>
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>

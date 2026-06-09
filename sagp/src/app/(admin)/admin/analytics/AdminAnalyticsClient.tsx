@@ -105,7 +105,7 @@ export function AdminAnalyticsClient({ orgId, initialData, topRiskUsers }: Props
               })}
             </div>
           ) : (
-            <EmptyState message="No risk scores computed yet. Employees must complete a module first." />
+            <EmptyState message="No risk scores computed yet. Employees must complete a game first." />
           )}
         </div>
 

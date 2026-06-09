@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
-  BookOpen,
   Trophy,
   Award,
   User,
@@ -18,7 +17,6 @@ import {
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Modules', href: '/modules', icon: BookOpen },
   { label: 'Games', href: '/games', icon: Gamepad2 },
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { label: 'Badges', href: '/badges', icon: Award },

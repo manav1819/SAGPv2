@@ -129,6 +129,28 @@ export async function getEmployeeDashboardData(
   }
 }
 
+export async function getEmployeeStreakDays(
+  userId: string,
+  orgId: string
+): Promise<number> {
+  try {
+    const client = await createServiceRoleClient();
+
+    const { data } = await client
+      .from('leaderboard')
+      .select('streak_days')
+      .eq('user_id', userId)
+      .eq('org_id', orgId)
+      .eq('scope', 'org')
+      .maybeSingle();
+
+    return data?.streak_days ?? 0;
+  } catch (err) {
+    console.error('[getEmployeeStreakDays]', err);
+    return 0;
+  }
+}
+
 // ── Admin dashboard ──────────────────────────────────────────────────────────
 
 export interface AdminDashboardData {
