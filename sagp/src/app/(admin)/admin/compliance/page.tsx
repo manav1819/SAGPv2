@@ -28,7 +28,7 @@ export default function AdminCompliancePage() {
       </div>
 
       <div className="sagp-card p-5 text-sm sagp-text-muted">
-        Compliance coverage is computed automatically as employees complete modules tagged with each framework.
+        Compliance coverage is computed automatically as employees complete assigned security games.
       </div>
     </div>
   );

@@ -126,7 +126,6 @@ export async function updateSession(request: NextRequest) {
   // /games added alongside existing employee route guards.
   const employeeRoutes = [
     '/dashboard',
-    '/modules',
     '/games',
     '/leaderboard',
     '/badges',

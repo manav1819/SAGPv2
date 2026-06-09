@@ -18,7 +18,7 @@ export default function AdminReportsPage() {
         <FileText className="h-12 w-12 sagp-text-muted opacity-30" />
         <p className="sagp-heading-3 sagp-text-muted">No reports generated yet</p>
         <p className="sagp-text-muted text-sm max-w-xs">
-          Compliance and training reports will appear here after your employees complete modules.
+          Compliance and training reports will appear here after your employees complete games.
         </p>
       </div>
     </div>

@@ -5,7 +5,7 @@ import type { AdminDashboardData } from '@/lib/actions/dashboard';
 import {
   LayoutDashboard,
   Users,
-  BookOpen,
+  Gamepad2,
   Shield,
   TrendingUp,
   BarChart3,
@@ -50,8 +50,8 @@ export function AdminDashboardClient({ orgId, initialData }: Props) {
           sub={d ? `${d.scoredUsers} scored (${d.coveragePct}% coverage)` : ''}
         />
         <KpiCard
-          icon={<BookOpen className="h-5 w-5" />}
-          label="Active Modules"
+          icon={<Gamepad2 className="h-5 w-5" />}
+          label="Active Games"
           value={d?.activeModules != null ? String(d.activeModules) : '—'}
           sub={d ? `${Math.round(d.avgCompletionRate)}% avg completion` : ''}
         />
@@ -110,7 +110,7 @@ export function AdminDashboardClient({ orgId, initialData }: Props) {
               })}
             </div>
           ) : (
-            <EmptyState message="No risk data yet. Employees must complete at least one module." />
+            <EmptyState message="No risk data yet. Employees must complete at least one game." />
           )}
         </div>
 
@@ -130,7 +130,7 @@ export function AdminDashboardClient({ orgId, initialData }: Props) {
               ))}
             </div>
           ) : (
-            <EmptyState message="Personas are assigned after phishing simulations or training modules." />
+            <EmptyState message="Personas are assigned after phishing simulations or security games." />
           )}
         </div>
       </div>

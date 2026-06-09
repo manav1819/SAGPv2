@@ -42,9 +42,10 @@ type SessionStatus = 'in_progress' | 'completed' | 'abandoned' | 'paused';
 type TimeBucket = 'less' | 'medium' | 'more';
 
 const GAME_MODULE_META: Record<string, { category: ModuleCategory; gameType: GameType }> = {
-  phishing:    { category: 'phishing',           gameType: 'phishing_sim' },
-  vishing:     { category: 'social_engineering', gameType: 'scenario'     },
-  '3d-office': { category: 'device_security',    gameType: 'scenario'     },
+  phishing:           { category: 'phishing',           gameType: 'phishing_sim' },
+  vishing:            { category: 'social_engineering', gameType: 'scenario'     },
+  '3d-office':        { category: 'device_security',    gameType: 'scenario'     },
+  'carnival-shooter': { category: 'phishing',           gameType: 'phishing_sim' },
 };
 
 function classifyTime(seconds: number): TimeBucket {

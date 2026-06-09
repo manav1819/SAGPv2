@@ -60,19 +60,26 @@ export class DialogueBox {
 
       const label = this.scene.add.text(btnX + 12, btnY + 8, choice.text, {
         fontSize: '14px', fontFamily: 'Courier New', color: '#eeeeff',
-      });
+      }).setInteractive({ useHandCursor: true });
 
-      bg.on('pointerover', () => {
+      const setHover = () => {
         bg.setFillStyle(0x1a3355);
         bg.setStrokeStyle(2, 0x00aaff);
         label.setColor('#ffffff');
-      });
-      bg.on('pointerout', () => {
+      };
+      const clearHover = () => {
         bg.setFillStyle(0x112233);
         bg.setStrokeStyle(1, 0x334455);
         label.setColor('#eeeeff');
-      });
-      bg.on('pointerdown', () => this._handleChoice(choice, scoreManager));
+      };
+
+      bg.on('pointerover', setHover);
+      bg.on('pointerout', clearHover);
+      bg.on('pointerup', () => this._handleChoice(choice, scoreManager));
+
+      label.on('pointerover', setHover);
+      label.on('pointerout', clearHover);
+      label.on('pointerup', () => this._handleChoice(choice, scoreManager));
 
       c.add(bg);
       c.add(label);
