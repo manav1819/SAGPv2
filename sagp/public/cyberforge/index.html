@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CyberForge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=Orbitron:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  :root{--bg:#0a0a1a;--surface:#0f0f2e;--surface2:#141440;--cyan:#00f5ff;--green:#39ff14;--purple:#bf5fff;--danger:#ff3b81;--warning:#ffd166;--text:#e6fbff;--muted:rgba(207,250,254,0.55);--border:rgba(0,245,255,0.18);--radius:6px;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;user-select:none;}
+  #app{display:flex;width:100vw;height:100vh;overflow:hidden;}
+  #sidebar{width:260px;min-width:260px;display:flex;flex-direction:column;background:var(--surface);border-right:1px solid var(--border);overflow:hidden;}
+  #sidebar-header{padding:16px 14px 12px;border-bottom:1px solid var(--border);}
+  #sidebar-header h1{font-family:'Orbitron',sans-serif;font-size:18px;letter-spacing:2px;color:var(--cyan);text-shadow:0 0 12px rgba(0,245,255,0.5);}
+  .subtitle{font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;}
+  #progress-bar-wrap{margin-top:10px;}
+  #progress-label{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:4px;display:flex;justify-content:space-between;}
+  #progress-bar-bg{height:4px;background:rgba(0,245,255,0.12);border-radius:99px;overflow:hidden;}
+  #progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:99px;transition:width 0.4s ease;box-shadow:0 0 8px rgba(0,245,255,0.4);}
+  #xp-display{font-size:11px;color:var(--green);font-family:'IBM Plex Mono',monospace;margin-top:6px;text-shadow:0 0 8px rgba(57,255,20,0.4);}
+  #search-wrap{padding:10px 12px;border-bottom:1px solid var(--border);}
+  #search-input{width:100%;background:rgba(0,245,255,0.06);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-size:12px;font-family:'IBM Plex Mono',monospace;outline:none;transition:border-color 0.2s;}
+  #search-input:focus{border-color:var(--cyan);}
+  #search-input::placeholder{color:var(--muted);}
+  #inventory{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px;}
+  #inventory::-webkit-scrollbar{width:5px;}
+  #inventory::-webkit-scrollbar-thumb{background:rgba(0,245,255,0.25);border-radius:3px;}
+  .inv-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(0,245,255,0.04);border:1px solid rgba(0,245,255,0.08);border-radius:var(--radius);cursor:pointer;transition:background 0.15s,border-color 0.15s,transform 0.1s;font-size:12px;}
+  .inv-item:hover{background:rgba(0,245,255,0.10);border-color:rgba(0,245,255,0.3);transform:translateX(2px);}
+  .inv-item:active{transform:scale(0.97);}
+  .inv-item .emoji{font-size:16px;line-height:1;}
+  .inv-item .name{flex:1;color:var(--text);}
+  .inv-item .tier-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .tier-0{background:var(--muted);}
+  .tier-1{background:var(--cyan);box-shadow:0 0 4px var(--cyan);}
+  .tier-2{background:var(--green);box-shadow:0 0 4px var(--green);}
+  .tier-3{background:var(--warning);box-shadow:0 0 4px var(--warning);}
+  .tier-4{background:var(--purple);box-shadow:0 0 4px var(--purple);}
+  .tier-5{background:var(--danger);box-shadow:0 0 4px var(--danger);}
+  .tier-6{background:#fff;box-shadow:0 0 6px #fff;}
+  #workspace{flex:1;position:relative;overflow:hidden;background:radial-gradient(circle at 20% 20%,rgba(0,245,255,0.06),transparent 40%),radial-gradient(circle at 80% 80%,rgba(191,95,255,0.07),transparent 40%),linear-gradient(135deg,#0a0a1a,#070713);}
+  #grid-overlay{position:absolute;inset:0;background-image:linear-gradient(rgba(0,245,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.05) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+  #ws-toolbar{position:absolute;top:14px;right:14px;display:flex;gap:8px;z-index:10;}
+  .ws-btn{background:rgba(15,15,46,0.8);border:1px solid var(--border);color:var(--muted);font-size:11px;font-family:'IBM Plex Mono',monospace;padding:6px 12px;border-radius:var(--radius);cursor:pointer;transition:all 0.2s;backdrop-filter:blur(6px);}
+  .ws-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+  #ws-hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;pointer-events:none;opacity:0.6;white-space:nowrap;}
+  .ws-card{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:90px;padding:10px 8px 8px;background:var(--surface2);border:1px solid rgba(0,245,255,0.2);border-radius:8px;cursor:grab;box-shadow:0 0 16px rgba(0,0,0,0.4);transition:box-shadow 0.2s,border-color 0.2s;z-index:5;font-size:11px;text-align:center;}
+  .ws-card:active{cursor:grabbing;}
+  .ws-card.dragging{z-index:100;box-shadow:0 0 24px rgba(0,245,255,0.3),0 8px 24px rgba(0,0,0,0.5);border-color:var(--cyan);opacity:0.92;}
+  .ws-card.highlight{border-color:var(--green);box-shadow:0 0 16px rgba(57,255,20,0.4);}
+  .ws-card .card-emoji{font-size:26px;line-height:1;}
+  .ws-card .card-name{color:var(--text);font-size:10px;line-height:1.3;}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;}
+  .modal-backdrop.hidden{display:none;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px) scale(0.96)}to{opacity:1;transform:none}}
+  @keyframes pulse-glow{0%,100%{box-shadow:0 0 20px rgba(0,245,255,0.3)}50%{box-shadow:0 0 40px rgba(0,245,255,0.6)}}
+  .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 32px;max-width:420px;width:90%;text-align:center;animation:slideUp 0.25s ease;position:relative;max-height:90vh;overflow-y:auto;}
+  .modal-box.discovery{border-color:rgba(0,245,255,0.4);}
+  .modal-box.warning{border-color:rgba(255,59,129,0.4);}
+  .modal-badge{display:inline-block;font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:2px;padding:3px 10px;border-radius:99px;margin-bottom:14px;text-transform:uppercase;}
+  .badge-discovery{background:rgba(0,245,255,0.12);color:var(--cyan);border:1px solid rgba(0,245,255,0.3);}
+  .badge-warning{background:rgba(255,59,129,0.10);color:var(--danger);border:1px solid rgba(255,59,129,0.3);}
+  .badge-exists{background:rgba(255,209,102,0.10);color:var(--warning);border:1px solid rgba(255,209,102,0.3);}
+  .modal-emoji{font-size:52px;display:block;margin-bottom:10px;}
+  .modal-title{font-family:'Orbitron',sans-serif;font-size:17px;color:var(--cyan);margin-bottom:6px;letter-spacing:1px;}
+  .modal-subtitle{font-size:12px;color:var(--purple);font-family:'IBM Plex Mono',monospace;margin-bottom:14px;}
+  .modal-desc{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:10px;}
+  .modal-info{font-size:12px;color:var(--muted);line-height:1.6;background:rgba(0,245,255,0.04);border:1px solid rgba(0,245,255,0.1);border-radius:var(--radius);padding:10px 12px;margin-bottom:16px;text-align:left;}
+  .modal-xp{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--green);margin-bottom:18px;text-shadow:0 0 8px rgba(57,255,20,0.4);}
+  .modal-btn{background:linear-gradient(135deg,var(--cyan),#00b8d9);color:#000;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;padding:10px 28px;border:none;border-radius:var(--radius);cursor:pointer;transition:opacity 0.2s,transform 0.1s;}
+  .modal-btn:hover{opacity:0.88;}
+  .modal-btn:active{transform:scale(0.97);}
+  .modal-btn.warn-btn{background:rgba(255,59,129,0.15);color:var(--danger);border:1px solid rgba(255,59,129,0.35);font-family:'IBM Plex Mono',monospace;font-weight:500;letter-spacing:0.5px;}
+  #combo-flash{position:fixed;inset:0;pointer-events:none;z-index:400;opacity:0;transition:opacity 0.15s;}
+  #combo-flash.flash-green{background:rgba(57,255,20,0.08);opacity:1;}
+  #combo-flash.flash-red{background:rgba(255,59,129,0.08);opacity:1;}
+  #combo-flash.flash-yellow{background:rgba(255,209,102,0.08);opacity:1;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <h1>⚡ CYBERFORGE</h1>
+      <div class="subtitle">Cybersecurity Element Synthesis</div>
+      <div id="progress-bar-wrap">
+        <div id="progress-label">
+          <span><span id="discovered-count">4</span> / <span id="total-count">70</span> elements</span>
+          <span id="xp-display">XP: 0</span>
+        </div>
+        <div id="progress-bar-bg"><div id="progress-bar-fill" style="width:5%"></div></div>
+      </div>
+    </div>
+    <div id="search-wrap">
+      <input id="search-input" type="text" placeholder="Search elements..." autocomplete="off"/>
+    </div>
+    <div id="inventory"></div>
+  </div>
+  <div id="workspace">
+    <div id="grid-overlay"></div>
+    <div id="ws-toolbar">
+      <button class="ws-btn" id="btn-clear">⌫ Clear</button>
+    </div>
+    <div id="ws-hint">Click an element in the sidebar to add it · Drag two together to combine</div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modal-discovery">
+  <div class="modal-box discovery">
+    <div class="modal-badge badge-discovery">New Discovery</div>
+    <span class="modal-emoji" id="disc-emoji"></span>
+    <div class="modal-title" id="disc-name"></div>
+    <div class="modal-subtitle" id="disc-category"></div>
+    <div class="modal-desc" id="disc-desc"></div>
+    <div class="modal-info" id="disc-info"></div>
+    <div class="modal-xp" id="disc-xp"></div>
+    <button class="modal-btn" id="btn-disc-close">FORGE AHEAD →</button>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modal-warning">
+  <div class="modal-box warning">
+    <div class="modal-badge badge-warning">No Reaction</div>
+    <span class="modal-emoji">⚠️</span>
+    <div class="modal-title" style="color:var(--danger)">Incompatible Elements</div>
+    <div class="modal-desc" id="warn-text"></div>
+    <button class="modal-btn warn-btn" id="btn-warn-close">Try Again</button>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modal-exists">
+  <div class="modal-box">
+    <div class="modal-badge badge-exists">Already Known</div>
+    <span class="modal-emoji" id="exists-emoji"></span>
+    <div class="modal-title" id="exists-name"></div>
+    <div class="modal-desc">You've already discovered this element. Keep exploring for new combinations!</div>
+    <button class="modal-btn" style="background:rgba(255,209,102,0.15);color:var(--warning);border:1px solid rgba(255,209,102,0.3);font-family:'IBM Plex Mono',monospace;font-weight:500;" id="btn-exists-close">Continue</button>
+  </div>
+</div>
+
+<div id="combo-flash"></div>
+
+<script>
+const ELEMENTS={
+  device:{name:'Device',emoji:'🖥️',tier:0,category:'Infrastructure',desc:'Any computing hardware — laptop, desktop, server, or IoT gadget.',info:'Devices are the physical endpoints of any network. Every cyberattack ultimately targets or exploits a device. Inventory management of all devices is a foundational security practice.'},
+  user:{name:'User',emoji:'👤',tier:0,category:'Human',desc:'A person interacting with technology — the most unpredictable element in any system.',info:'Studies consistently show 85%+ of breaches involve human error. Training users is often more cost-effective than any technical control.'},
+  network:{name:'Network',emoji:'🌐',tier:0,category:'Infrastructure',desc:'The interconnected fabric linking devices and people.',info:'Networks are the highways of cyberattacks. Understanding your network topology is the starting point for any security architecture.'},
+  credential:{name:'Credential',emoji:'🔑',tier:0,category:'Identity',desc:'Proof of identity: a username, password, token, or certificate.',info:'Compromised credentials are the #1 initial access method in breaches. Protecting credentials with MFA and password managers is critical.'},
+  endpoint:{name:'Endpoint',emoji:'💻',tier:1,category:'Infrastructure',desc:'A user-facing device connected to the network: laptop, workstation, or mobile.',info:'Endpoints are the most common attack surface. Endpoint Detection & Response (EDR) tools monitor them for malicious behaviour in real time.'},
+  server:{name:'Server',emoji:'🖧',tier:1,category:'Infrastructure',desc:'A machine that provides services, data, or compute to other devices.',info:'Servers store the crown jewels. Hardening servers — disabling unused services, patching, least privilege — is mandatory in any security programme.'},
+  account:{name:'Account',emoji:'🪪',tier:1,category:'Identity',desc:'A digital identity pairing a user with access rights in a system.',info:'Account hygiene — unique passwords, least-privilege roles, and regular access review — prevents lateral movement after initial compromise.'},
+  password:{name:'Password',emoji:'🗝️',tier:1,category:'Identity',desc:'A secret string used to authenticate a user to a system.',info:'Weak or reused passwords cause the majority of account takeovers. NIST recommends long passphrases and password manager usage over complexity rules.'},
+  encryption:{name:'Encryption',emoji:'🔒',tier:1,category:'Defence',desc:'The process of encoding data so only authorised parties can read it.',info:'Encryption at rest and in transit (TLS, AES-256) is the last line of defence when data is exfiltrated — making stolen data useless without the key.'},
+  internet:{name:'Internet',emoji:'🌍',tier:1,category:'Infrastructure',desc:'The global public network connecting billions of devices.',info:'The internet is both the attacker\'s highway and the defender\'s tool. Understanding exposure to the public internet is key to attack surface management.'},
+  mfa:{name:'MFA',emoji:'🔐',tier:1,category:'Defence',desc:'Multi-Factor Authentication — requiring two or more proof factors to log in.',info:'MFA blocks 99.9% of automated credential-based attacks (Microsoft telemetry). It\'s the single highest-ROI security control for account protection.'},
+  org:{name:'Organisation',emoji:'🏢',tier:1,category:'Human',desc:'A structured group of people sharing resources, systems, and goals.',info:'Organisations are high-value targets because a successful breach affects all employees, customers, and data at once. Security culture starts at the top.'},
+  firewall:{name:'Firewall',emoji:'🧱',tier:2,category:'Defence',desc:'A system that filters network traffic based on defined security rules.',info:'Firewalls are the gatekeepers of your network perimeter. Next-Gen Firewalls (NGFW) inspect packet content, not just ports and IPs.'},
+  phishing:{name:'Phishing',emoji:'🎣',tier:2,category:'Attack',desc:'Deceptive messages tricking users into revealing credentials or installing malware.',info:'Phishing is the most common initial attack vector. 36% of breaches involve phishing (Verizon DBIR). User training and email filtering are the primary defences.'},
+  tls:{name:'TLS/SSL',emoji:'🔏',tier:2,category:'Defence',desc:'Transport Layer Security — the cryptographic protocol protecting data in transit.',info:'HTTPS runs on TLS. Without it, all data transmitted over a network is readable by anyone with network access.'},
+  vpn:{name:'VPN',emoji:'🛡️',tier:2,category:'Defence',desc:'Virtual Private Network — creates an encrypted tunnel over the public internet.',info:'VPNs were the go-to remote access solution for decades. Modern zero-trust architectures are gradually replacing them, but VPNs remain widely used.'},
+  ssh:{name:'SSH',emoji:'🔌',tier:2,category:'Tool',desc:'Secure Shell — an encrypted protocol for remote command-line access to servers.',info:'SSH replaced insecure Telnet. Key-based authentication is far more secure than passwords. Exposed SSH on port 22 is a frequent brute-force bot target.'},
+  darkweb:{name:'Dark Web',emoji:'🕶️',tier:2,category:'Threat Intel',desc:'Encrypted, anonymised networks (Tor) hosting sites unreachable via standard browsers.',info:'Stolen credentials, malware kits, and ransomware services are sold on dark web marketplaces. Threat intel teams monitor these for early breach indicators.'},
+  webserver:{name:'Web Server',emoji:'📡',tier:2,category:'Infrastructure',desc:'Software serving web content to clients over HTTP/HTTPS (Apache, Nginx, IIS).',info:'Web servers are a primary attack target. Common vulnerabilities: SQL injection, XSS, and misconfigurations. Regular patching is essential.'},
+  ldap:{name:'Directory (LDAP)',emoji:'📁',tier:2,category:'Identity',desc:'Centralised user account management (Active Directory, LDAP).',info:'LDAP/Active Directory stores every user and computer in an organisation. Compromising it often means total domain control — the attacker\'s ultimate goal.'},
+  credstuff:{name:'Credential Stuffing',emoji:'💀',tier:2,category:'Attack',desc:'Automated use of leaked username/password pairs to break into other accounts.',info:'Billions of credentials from past breaches circulate online. Credential stuffing exploits password reuse. MFA and breach monitoring are the defences.'},
+  secaccount:{name:'Secure Account',emoji:'🛡',tier:2,category:'Defence',desc:'An account protected by MFA, strong passwords, and least-privilege access.',info:'A secure account limits blast radius. Even after phishing, MFA and limited permissions can prevent lateral movement.'},
+  spearphish:{name:'Spear Phishing',emoji:'🎯',tier:3,category:'Attack',desc:'Targeted phishing personalised for a specific individual using OSINT.',info:'Spear phishing is significantly more effective than bulk phishing. Attackers research targets on LinkedIn, social media, and leaked data before crafting tailored lures.'},
+  databreach:{name:'Data Breach',emoji:'💥',tier:3,category:'Attack',desc:'Unauthorised access and exfiltration of sensitive data from a system.',info:'The average cost of a data breach is $4.45M (IBM 2023). GDPR and HIPAA require disclosure within 72 hours in many jurisdictions.'},
+  ids:{name:'IDS/IPS',emoji:'🔍',tier:3,category:'Defence',desc:'Intrusion Detection/Prevention System — monitors traffic for malicious patterns.',info:'IDS alerts; IPS blocks. Placed at network choke points, they catch known attack signatures and anomalies. Often paired with SIEM for correlation.'},
+  https:{name:'HTTPS',emoji:'🔐',tier:3,category:'Defence',desc:'HTTP over TLS — the secure, encrypted standard for all modern web communication.',info:'HTTPS ensures confidentiality and integrity of web traffic. Sites without it are flagged by browsers. HSTS headers further strengthen it.'},
+  privesc:{name:'Privilege Escalation',emoji:'⬆️',tier:3,category:'Attack',desc:'Gaining higher permissions than initially granted — e.g., user → admin → root.',info:'Privilege escalation is critical in the attack kill chain. Least-privilege access, patching kernel vulns, and monitoring unusual permission changes mitigate it.'},
+  ransomware:{name:'Ransomware',emoji:'💸',tier:3,category:'Attack',desc:'Malware that encrypts victim data and demands payment for the decryption key.',info:'Ransomware attacks cost billions annually. Offline backups (3-2-1 strategy), network segmentation, and rapid IR plans are the primary defences.'},
+  malware:{name:'Malware',emoji:'🦠',tier:3,category:'Attack',desc:'Malicious software designed to damage, disrupt, or gain unauthorised access.',info:'Malware categories include viruses, trojans, spyware, and ransomware. Defence includes AV/EDR, email filtering, and user training.'},
+  accounttko:{name:'Account Takeover',emoji:'🚪',tier:3,category:'Attack',desc:'Full control of a victim\'s account after credential theft or session hijacking.',info:'Account takeover enables financial fraud, data theft, and pivoting. Anomaly detection on login location/time helps catch it early.'},
+  siem:{name:'SIEM',emoji:'📊',tier:3,category:'Defence',desc:'Security Information & Event Management — aggregates and correlates security logs.',info:'SIEM platforms (Splunk, Microsoft Sentinel) collect logs from across your environment and alert on suspicious patterns. They\'re the nervous system of a SOC.'},
+  zerotrust:{name:'Zero Trust',emoji:'🏰',tier:3,category:'Defence',desc:'Security model where no user, device, or network is trusted by default.',info:'"Never trust, always verify." Zero trust replaces the old castle-and-moat model. Every access request is authenticated, authorised, and continuously validated.'},
+  website:{name:'Website',emoji:'🌐',tier:3,category:'Infrastructure',desc:'A publicly accessible web application or informational site.',info:'Websites are a primary attack surface: SQL injection, XSS, CSRF, and misconfigured APIs are common vulnerabilities. OWASP Top 10 is the standard reference.'},
+  botnet:{name:'Botnet',emoji:'🤖',tier:4,category:'Attack',desc:'A network of compromised devices (bots) controlled by an attacker.',info:'Botnets power DDoS attacks, spam campaigns, and crypto-mining. Mirai (2016) weaponised IoT devices to launch the largest DDoS at the time against DNS provider Dyn.'},
+  rootaccess:{name:'Root Access',emoji:'👑',tier:4,category:'Attack',desc:'Complete, unrestricted administrative control over a system.',info:'Root/admin access is the attacker\'s ultimate goal on a single machine. From here they install backdoors, exfiltrate all data, and disable security tools.'},
+  dataexfil:{name:'Data Exfiltration',emoji:'📤',tier:4,category:'Attack',desc:'Unauthorised transfer of data out of an organisation to attacker-controlled infrastructure.',info:'DLP (Data Loss Prevention) tools, network monitoring for unusual outbound traffic, and encryption of sensitive data help detect and limit exfiltration.'},
+  lateral:{name:'Lateral Movement',emoji:'🦟',tier:4,category:'Attack',desc:'Techniques attackers use to progressively move deeper through a network after initial access.',info:'Lateral movement exploits weak segmentation and over-privileged accounts. MITRE ATT&CK documents dozens of techniques. Network segmentation and PAM slow this.'},
+  threatintel:{name:'Threat Intelligence',emoji:'🧠',tier:4,category:'Defence',desc:'Curated, actionable knowledge about current and emerging threats, actors, and TTPs.',info:'Threat intelligence feeds (MISP, VirusTotal, ISACs) help defenders stay ahead. Knowing who targets your sector and how enables proactive defence.'},
+  waf:{name:'WAF',emoji:'🛡️',tier:4,category:'Defence',desc:'Web Application Firewall — filters malicious HTTP traffic targeting web apps.',info:'WAFs protect against OWASP Top 10 attacks (SQLi, XSS). Cloud WAFs (Cloudflare, AWS WAF) can absorb DDoS traffic too. Secure coding still matters.'},
+  backdoor:{name:'Backdoor',emoji:'🚪',tier:4,category:'Attack',desc:'A hidden method of bypassing normal authentication to maintain persistent access.',info:'Backdoors are planted after initial compromise to survive reboots and password changes. Regular integrity monitoring and threat hunting help detect them.'},
+  ddos:{name:'DDoS Attack',emoji:'⚡',tier:4,category:'Attack',desc:'Distributed Denial of Service — flooding a target with traffic until it collapses.',info:'DDoS attacks can knock services offline for hours. Mitigation uses CDNs, scrubbing centres, and rate limiting. The largest attacks now exceed 3 Tbps.'},
+  ztna:{name:'ZTNA',emoji:'🏯',tier:4,category:'Defence',desc:'Zero Trust Network Access — grants least-privilege access to specific apps, not the whole network.',info:'ZTNA is the modern VPN replacement. Users connect to specific authorised apps only, not the full corporate network — massively reducing lateral movement risk.'},
+  soc:{name:'SOC',emoji:'🎮',tier:4,category:'Defence',desc:'Security Operations Centre — a team monitoring, detecting, and responding to incidents 24/7.',info:'SOC analysts triage alerts from SIEM, EDR, and threat intel. Tier 1 handles initial triage; Tier 3 handles advanced incidents. MTTR is a key performance metric.'},
+  apt:{name:'APT',emoji:'👾',tier:5,category:'Attack',desc:'Advanced Persistent Threat — a sophisticated, long-term targeted attack, often nation-state.',info:'APT groups (APT28, Lazarus, Cozy Bear) conduct espionage and sabotage. They use zero-days, supply chain attacks, and custom malware. Presence can go undetected for months.'},
+  pivot:{name:'Pivot Attack',emoji:'🔀',tier:5,category:'Attack',desc:'Using a compromised host as a stepping stone to attack deeper network segments.',info:'Pivoting turns a single foothold into network-wide access. Attackers pivot through DMZs into internal networks. Micro-segmentation and PAM are the primary defences.'},
+  rootkit:{name:'Rootkit',emoji:'🧬',tier:5,category:'Attack',desc:'Malware that hides deeply in the OS, masking the attacker\'s presence from security tools.',info:'Rootkits operate at kernel level, making detection extremely difficult. Secure boot, TPM chips, and memory forensics tools like Volatility are used to detect them.'},
+  ir:{name:'Incident Response',emoji:'🚨',tier:5,category:'Defence',desc:'The structured process of detecting, containing, eradicating, and recovering from security incidents.',info:'IR follows 6 phases: Preparation → Identification → Containment → Eradication → Recovery → Lessons Learned. NIST SP 800-61 is the standard reference guide.'},
+  c2:{name:'C2 Server',emoji:'📡',tier:5,category:'Attack',desc:'Command & Control infrastructure used by attackers to remotely direct compromised systems.',info:'C2 channels allow attackers to issue commands, receive stolen data, and update malware. Modern C2 uses HTTPS to blend with legitimate traffic. Detecting beaconing is key.'},
+  forensics:{name:'Digital Forensics',emoji:'🔬',tier:5,category:'Defence',desc:'The science of collecting, preserving, and analysing digital evidence from compromised systems.',info:'Forensics supports IR and legal proceedings. Evidence must be collected following chain of custody. Tools include Autopsy, FTK, and Volatility for memory analysis.'},
+  threathunt:{name:'Threat Hunting',emoji:'🔎',tier:5,category:'Defence',desc:'Proactive search for hidden threats in your environment, beyond automated alerts.',info:'Threat hunters assume breach and actively search for attacker TTPs. They use MITRE ATT&CK as a framework. Hunting finds threats that evade automated detection.'},
+  persistence:{name:'Persistence',emoji:'🔗',tier:5,category:'Attack',desc:'Techniques that ensure malware or attacker access survives reboots and credential changes.',info:'Persistence mechanisms include scheduled tasks, registry run keys, web shells, and cron jobs. Detecting unexpected startup entries is a hunting priority.'},
+  csirt:{name:'CSIRT',emoji:'🚑',tier:6,category:'Defence',desc:'Computer Security Incident Response Team — the elite unit managing major security incidents.',info:'CSIRTs coordinate containment, forensics, legal, PR, and recovery during major incidents. National CSIRTs (CISA, NCSC) guide critical infrastructure organisations.'},
+  killchain:{name:'Cyber Kill Chain',emoji:'⛓️',tier:6,category:'Framework',desc:'Lockheed Martin\'s 7-phase model: Recon → Weaponise → Deliver → Exploit → Install → C2 → Actions.',info:'Understanding the kill chain helps defenders place controls at each phase. Breaking the chain early — e.g., blocking delivery — is far cheaper than post-exploitation response.'},
+  soar:{name:'SOAR',emoji:'🎯',tier:6,category:'Defence',desc:'Security Orchestration, Automation & Response — automates repetitive SOC tasks and incident playbooks.',info:'SOAR platforms reduce analyst alert fatigue by automating enrichment and triage. MTTR can drop from hours to minutes with well-tuned playbooks.'},
+  ztarch:{name:'Zero Trust Architecture',emoji:'🏯',tier:6,category:'Defence',desc:'A complete enterprise security model built on: never trust, always verify.',info:'ZTA (NIST SP 800-207) combines ZTNA, identity, micro-segmentation, and continuous monitoring. Mandated by US Executive Order 14028 (2021) for federal agencies.'},
+  nationstate:{name:'Nation-State Attack',emoji:'🌍',tier:6,category:'Attack',desc:'A cyberattack orchestrated or sponsored by a national government for espionage or sabotage.',info:'Nation-state attacks include Stuxnet (Iran), NotPetya (Ukraine), and SolarWinds (US federal). They represent the highest threat tier — well-funded, patient, skilled.'},
+  evidence:{name:'Digital Evidence',emoji:'📋',tier:6,category:'Defence',desc:'Digitally preserved artefacts from a compromise, admissible in legal proceedings.',info:'Digital evidence must follow strict chain of custody procedures. Hash verification ensures integrity. It underpins prosecution of cybercriminals and breach liability cases.'},
+  redblue:{name:'Red vs Blue Team',emoji:'🟥🟦',tier:6,category:'Framework',desc:'Red team (attackers) vs Blue team (defenders) — adversarial exercises testing real-world resilience.',info:'Red teams simulate APT tactics to find gaps; Blue teams detect and respond. Purple teaming blends both. These exercises are the closest thing to a real-world rehearsal.'},
+  cyberwar:{name:'Cyberwarfare',emoji:'⚔️',tier:6,category:'Attack',desc:'State-sponsored offensive cyber operations targeting critical national infrastructure.',info:'Cyberwarfare targets power grids, water systems, financial networks, and communications. The Tallinn Manual guides international law on cyber conflict.'},
+};
+
+const RECIPES={
+  'device+user':'endpoint',
+  'device+network':'server',
+  'device+credential':'encryption',
+  'user+network':'account',
+  'user+credential':'password',
+  'network+credential':'mfa',
+  'device+device':'server',
+  'user+user':'org',
+  'network+network':'internet',
+  'credential+credential':'mfa',
+  'endpoint+network':'firewall',
+  'endpoint+credential':'ssh',
+  'account+internet':'credstuff',
+  'password+internet':'phishing',
+  'mfa+account':'secaccount',
+  'org+internet':'vpn',
+  'org+network':'ldap',
+  'server+network':'webserver',
+  'server+server':'ldap',
+  'encryption+network':'tls',
+  'internet+internet':'darkweb',
+  'account+account':'ldap',
+  'user+password':'credstuff',
+  'endpoint+endpoint':'firewall',
+  'phishing+org':'spearphish',
+  'darkweb+credential':'databreach',
+  'darkweb+password':'databreach',
+  'firewall+endpoint':'ids',
+  'tls+webserver':'https',
+  'ssh+server':'rootaccess',
+  'credstuff+webserver':'accounttko',
+  'credstuff+website':'accounttko',
+  'phishing+credential':'malware',
+  'phishing+password':'malware',
+  'databreach+org':'ransomware',
+  'ids+network':'siem',
+  'ids+siem':'siem',
+  'vpn+account':'zerotrust',
+  'webserver+internet':'website',
+  'tls+website':'https',
+  'malware+server':'botnet',
+  'rootaccess+server':'backdoor',
+  'darkweb+org':'apt',
+  'vpn+zerotrust':'ztna',
+  'siem+org':'soc',
+  'botnet+internet':'ddos',
+  'botnet+firewall':'waf',
+  'ddos+firewall':'waf',
+  'backdoor+malware':'rootkit',
+  'rootaccess+malware':'rootkit',
+  'lateral+server':'pivot',
+  'privesc+server':'lateral',
+  'accounttko+server':'lateral',
+  'privesc+credential':'lateral',
+  'soc+siem':'threatintel',
+  'soc+threatintel':'threatintel',
+  'zerotrust+org':'ztna',
+  'ztna+soc':'ztarch',
+  'ztna+zerotrust':'ztarch',
+  'ransomware+server':'dataexfil',
+  'databreach+internet':'dataexfil',
+  'threathunt+apt':'ir',
+  'threathunt+malware':'ir',
+  'soc+apt':'ir',
+  'lateral+network':'apt',
+  'pivot+network':'apt',
+  'apt+network':'lateral',
+  'ir+org':'csirt',
+  'ir+databreach':'forensics',
+  'forensics+csirt':'evidence',
+  'rootkit+server':'persistence',
+  'rootkit+malware':'persistence',
+  'persistence+network':'c2',
+  'backdoor+network':'c2',
+  'threatintel+apt':'killchain',
+  'killchain+csirt':'redblue',
+  'threatintel+soc':'soar',
+  'zerotrust+threatintel':'ztarch',
+  'apt+internet':'nationstate',
+  'c2+apt':'nationstate',
+  'nationstate+internet':'cyberwar',
+  'nationstate+apt':'cyberwar',
+  'account+rootaccess':'privesc',
+  'credential+rootaccess':'privesc',
+  'endpoint+user':'endpoint',
+  'account+network':'ldap',
+  'password+credential':'mfa',
+  'encryption+device':'endpoint',
+  'server+credential':'ssh',
+  'internet+user':'account',
+  'org+credential':'ldap',
+  'firewall+network':'ids',
+  'phishing+user':'credstuff',
+  'malware+endpoint':'botnet',
+  'ransomware+org':'dataexfil',
+  'ids+firewall':'siem',
+  'soc+ir':'csirt',
+  'threatintel+network':'threathunt',
+  'apt+server':'persistence',
+  'rootkit+network':'c2',
+  'c2+server':'nationstate',
+};
+
+const XP_TABLE={0:0,1:10,2:25,3:50,4:75,5:100,6:150};
+const TOTAL=Object.keys(ELEMENTS).length;
+
+const state={
+  discovered:new Set(['device','user','network','credential']),
+  xp:0,
+  wsCards:[],
+  nextCardId:0,
+};
+
+const $=id=>document.getElementById(id);
+
+function recipeKey(a,b){return[a,b].sort().join('+');}
+
+function renderInventory(filter=''){
+  const inv=$('inventory');
+  inv.innerHTML='';
+  const q=filter.toLowerCase().trim();
+  const items=[...state.discovered]
+    .filter(id=>!q||ELEMENTS[id].name.toLowerCase().includes(q)||ELEMENTS[id].category.toLowerCase().includes(q))
+    .sort((a,b)=>ELEMENTS[a].name.localeCompare(ELEMENTS[b].name));
+  items.forEach(id=>{
+    const el=ELEMENTS[id];
+    const div=document.createElement('div');
+    div.className='inv-item';
+    div.innerHTML=`<span class="emoji">${el.emoji}</span><span class="name">${el.name}</span><span class="tier-dot tier-${el.tier}"></span>`;
+    div.title=`${el.category} · Tier ${el.tier}\nClick to add to workspace`;
+    div.addEventListener('click',()=>spawnCard(id));
+    inv.appendChild(div);
+  });
+}
+
+function updateProgress(){
+  const count=state.discovered.size;
+  $('discovered-count').textContent=count;
+  $('total-count').textContent=TOTAL;
+  $('progress-bar-fill').style.width=`${Math.round(count/TOTAL*100)}%`;
+  $('xp-display').textContent=`XP: ${state.xp}`;
+}
+
+$('search-input').addEventListener('input',e=>renderInventory(e.target.value));
+
+function spawnCard(elemId,x,y){
+  const ws=$('workspace');
+  const rect=ws.getBoundingClientRect();
+  const cx=x!==undefined?x:Math.random()*(rect.width-120)+60;
+  const cy=y!==undefined?y:Math.random()*(rect.height-160)+80;
+  const id=state.nextCardId++;
+  const el=ELEMENTS[elemId];
+  const card=document.createElement('div');
+  card.className='ws-card';
+  card.style.left=cx+'px';
+  card.style.top=cy+'px';
+  card.innerHTML=`<span class="card-emoji">${el.emoji}</span><span class="card-name">${el.name}</span>`;
+  card.dataset.cardId=id;
+  card.dataset.elemId=elemId;
+  makeDraggable(card);
+  ws.appendChild(card);
+  const cardObj={id,elemId,x:cx,y:cy,el:card};
+  state.wsCards.push(cardObj);
+  return cardObj;
+}
+
+function removeCard(cardId){
+  const idx=state.wsCards.findIndex(c=>c.id===cardId);
+  if(idx===-1)return;
+  state.wsCards[idx].el.remove();
+  state.wsCards.splice(idx,1);
+}
+
+$('btn-clear').addEventListener('click',()=>{
+  state.wsCards.forEach(c=>c.el.remove());
+  state.wsCards=[];
+});
+
+let dragging=null;
+
+function makeDraggable(card){
+  card.addEventListener('mousedown',onMouseDown);
+  card.addEventListener('touchstart',onTouchStart,{passive:false});
+}
+
+function onMouseDown(e){
+  if(e.button!==0)return;
+  e.preventDefault();
+  startDrag(e.currentTarget,e.clientX,e.clientY);
+}
+
+function onTouchStart(e){
+  e.preventDefault();
+  const t=e.touches[0];
+  startDrag(e.currentTarget,t.clientX,t.clientY);
+}
+
+function startDrag(cardEl,clientX,clientY){
+  const cardId=parseInt(cardEl.dataset.cardId);
+  const cardObj=state.wsCards.find(c=>c.id===cardId);
+  if(!cardObj)return;
+  cardEl.style.zIndex=100;
+  cardEl.classList.add('dragging');
+  dragging={cardObj,startX:clientX,startY:clientY,startLeft:parseFloat(cardEl.style.left),startTop:parseFloat(cardEl.style.top)};
+}
+
+document.addEventListener('mousemove',onMouseMove);
+document.addEventListener('touchmove',onTouchMove,{passive:false});
+document.addEventListener('mouseup',onMouseUp);
+document.addEventListener('touchend',onTouchEnd);
+
+function onMouseMove(e){if(!dragging)return;moveDragging(e.clientX,e.clientY);}
+function onTouchMove(e){if(!dragging)return;e.preventDefault();const t=e.touches[0];moveDragging(t.clientX,t.clientY);}
+
+function moveDragging(clientX,clientY){
+  const dx=clientX-dragging.startX;
+  const dy=clientY-dragging.startY;
+  const newL=dragging.startLeft+dx;
+  const newT=dragging.startTop+dy;
+  dragging.cardObj.el.style.left=newL+'px';
+  dragging.cardObj.el.style.top=newT+'px';
+  dragging.cardObj.x=newL;
+  dragging.cardObj.y=newT;
+  highlightNear(dragging.cardObj);
+}
+
+function onMouseUp(){if(dragging)endDrag();}
+function onTouchEnd(){if(dragging)endDrag();}
+
+function endDrag(){
+  const{cardObj}=dragging;
+  cardObj.el.classList.remove('dragging');
+  cardObj.el.style.zIndex=5;
+  const target=findOverlap(cardObj);
+  if(target)attemptCombine(cardObj,target);
+  dragging=null;
+  state.wsCards.forEach(c=>c.el.classList.remove('highlight'));
+}
+
+function cardCenter(c){return{x:c.x+45,y:c.y+45};}
+function dist(a,b){const ca=cardCenter(a),cb=cardCenter(b);return Math.hypot(ca.x-cb.x,ca.y-cb.y);}
+
+function findOverlap(draggedCard){
+  let best=null,bestDist=72;
+  state.wsCards.forEach(c=>{
+    if(c.id===draggedCard.id)return;
+    const d=dist(draggedCard,c);
+    if(d<bestDist){bestDist=d;best=c;}
+  });
+  return best;
+}
+
+function highlightNear(draggedCard){
+  state.wsCards.forEach(c=>{
+    if(c.id===draggedCard.id)return;
+    c.el.classList.toggle('highlight',dist(draggedCard,c)<72);
+  });
+}
+
+function attemptCombine(cardA,cardB){
+  const key=recipeKey(cardA.elemId,cardB.elemId);
+  const resultId=RECIPES[key];
+  if(!resultId){
+    const same=cardA.elemId===cardB.elemId;
+    showWarning(same
+      ?`<strong>${ELEMENTS[cardA.elemId].name}</strong> can't combine with itself. Try pairing it with something different.`
+      :`<strong>${ELEMENTS[cardA.elemId].name}</strong> + <strong>${ELEMENTS[cardB.elemId].name}</strong> don't produce a known reaction. Think about how these cybersecurity concepts relate in the real world.`
+    );
+    flashScreen('red');
+    return;
+  }
+  const mx=(cardA.x+cardB.x)/2;
+  const my=(cardA.y+cardB.y)/2;
+  const aId=cardA.id,bId=cardB.id;
+  removeCard(aId);
+  removeCard(bId);
+  const isNew=!state.discovered.has(resultId);
+  if(isNew){
+    state.discovered.add(resultId);
+    const xp=XP_TABLE[ELEMENTS[resultId].tier]||10;
+    state.xp+=xp;
+    updateProgress();
+    renderInventory($('search-input').value);
+    flashScreen('green');
+    spawnCard(resultId,mx,my);
+    showDiscovery(resultId,xp);
+    postXP(xp,resultId);
+  }else{
+    flashScreen('yellow');
+    spawnCard(resultId,mx,my);
+    showExists(resultId);
+  }
+}
+
+function showDiscovery(elemId,xp){
+  const el=ELEMENTS[elemId];
+  $('disc-emoji').textContent=el.emoji;
+  $('disc-name').textContent=el.name;
+  $('disc-category').textContent=`${el.category} · Tier ${el.tier}`;
+  $('disc-desc').textContent=el.desc;
+  $('disc-info').textContent=el.info;
+  $('disc-xp').textContent=`+ ${xp} XP earned`;
+  $('modal-discovery').classList.remove('hidden');
+}
+
+function showExists(elemId){
+  const el=ELEMENTS[elemId];
+  $('exists-emoji').textContent=el.emoji;
+  $('exists-name').textContent=el.name;
+  $('modal-exists').classList.remove('hidden');
+}
+
+function showWarning(html){
+  $('warn-text').innerHTML=html;
+  $('modal-warning').classList.remove('hidden');
+}
+
+$('btn-disc-close').addEventListener('click',()=>$('modal-discovery').classList.add('hidden'));
+$('btn-warn-close').addEventListener('click',()=>$('modal-warning').classList.add('hidden'));
+$('btn-exists-close').addEventListener('click',()=>$('modal-exists').classList.add('hidden'));
+
+['modal-discovery','modal-warning','modal-exists'].forEach(id=>{
+  $(id).addEventListener('click',e=>{if(e.target===$(id))$(id).classList.add('hidden');});
+});
+
+function flashScreen(colour){
+  const el=$('combo-flash');
+  el.className='';
+  void el.offsetWidth;
+  el.classList.add(`flash-${colour}`);
+  setTimeout(()=>el.className='',400);
+}
+
+function postXP(xp,elemId){
+  try{
+    window.parent.postMessage({type:'SAGP_SCORE',game:'cyberforge',xp,element:elemId,totalXP:state.xp,totalDiscovered:state.discovered.size},'*');
+  }catch(e){}
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')['modal-discovery','modal-warning','modal-exists'].forEach(id=>$(id).classList.add('hidden'));
+});
+
+function init(){
+  updateProgress();
+  renderInventory();
+  const ws=$('workspace');
+  const w=ws.offsetWidth,h=ws.offsetHeight;
+  const cx=w/2,cy=h/2;
+  spawnCard('device',cx-120,cy-60);
+  spawnCard('user',cx+30,cy-60);
+  spawnCard('network',cx-120,cy+60);
+  spawnCard('credential',cx+30,cy+60);
+}
+
+window.addEventListener('load',init);
+</script>
+</body>
+</html>

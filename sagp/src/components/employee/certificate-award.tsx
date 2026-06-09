@@ -32,7 +32,15 @@ export function CertificateAward({
       {showConfetti && (
         <div className="sagp-confetti" aria-hidden="true">
           {Array.from({ length: 18 }, (_, index) => (
-            <span key={index} style={{ '--i': index } as CSSProperties} />
+            <span
+              key={index}
+              style={{
+                '--confetti-left': `${index * 6 - 4}%`,
+                '--confetti-delay': `${index * 0.07}s`,
+                '--confetti-rotate': `${index * 24}deg`,
+                '--confetti-end-x': `${(index - 9) * 0.35}rem`,
+              } as CSSProperties}
+            />
           ))}
         </div>
       )}

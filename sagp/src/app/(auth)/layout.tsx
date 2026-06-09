@@ -9,7 +9,13 @@ export default function AuthLayout({
     <div className="sagp-login-page sagp-app px-4">
       <div className="sagp-matrix-rain" aria-hidden="true">
         {Array.from({ length: 28 }, (_, index) => (
-          <span key={index} style={{ '--i': index } as CSSProperties}>
+          <span
+            key={index}
+            style={{
+              '--matrix-left': `${index * 3.75 - 2}%`,
+              '--matrix-delay': `${index * -0.48}s`,
+            } as CSSProperties}
+          >
             0101101010010110
           </span>
         ))}

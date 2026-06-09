@@ -16,17 +16,12 @@ export default function GamesPage() {
 
   return (
     <div className="sagp-content-area p-6 lg:p-8 space-y-6">
-      <h1 className="sagp-heading-1 flex items-center gap-3">
-        <Gamepad2 className="h-7 w-7 sagp-text-primary" />
-        Security Games
-      </h1>
-
       {activeGames.length === 0 ? (
         <div className="sagp-card flex flex-col items-center justify-center gap-3 py-20 text-center">
           <Gamepad2 className="h-12 w-12 sagp-text-muted opacity-30" />
           <p className="sagp-heading-3 sagp-text-muted">No games available</p>
           <p className="sagp-text-muted text-sm max-w-xs">
-            Gamified security challenges will appear here once modules are published.
+            Gamified security challenges will appear here once games are published.
           </p>
         </div>
       ) : (
@@ -35,7 +30,7 @@ export default function GamesPage() {
             <Link
               key={game.id}
               href={gameHref(game)}
-              className="sagp-card group flex flex-col overflow-hidden transition-all hover:ring-2 hover:ring-[var(--sagp-primary)] focus-visible:ring-2 focus-visible:ring-[var(--sagp-primary)] outline-none"
+                className="sagp-card group flex flex-col overflow-hidden transition-all hover:ring-2 hover:ring-(--sagp-primary) focus-visible:ring-2 focus-visible:ring-(--sagp-primary) outline-none"
             >
               {/* Thumbnail */}
               <div className="relative h-40 w-full bg-slate-800 overflow-hidden">
@@ -54,7 +49,7 @@ export default function GamesPage() {
                 )}
                 {/* Overlay play button */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                  <span className="flex items-center gap-1.5 rounded-full bg-[var(--sagp-primary)] px-4 py-1.5 text-sm font-semibold text-white shadow-lg">
+                  <span className="flex items-center gap-1.5 rounded-full bg-(--sagp-primary) px-4 py-1.5 text-sm font-semibold text-white shadow-lg">
                     Play <ChevronRight className="h-4 w-4" />
                   </span>
                 </div>
