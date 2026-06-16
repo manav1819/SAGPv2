@@ -163,11 +163,7 @@ export const GAMES: GameConfig[] = [
     estimatedMinutes: 15,
     iframeUrl: '/cyberforge/index.html',
     active: true,
-<<<<<<< HEAD
     icon: '⚡',
-=======
-    icon: '\u26A1',
->>>>>>> 13aad6f9c9a1d73d8bf83bab27a26d290b29a682
   },
   {
     id: 'carnival-shooter',
