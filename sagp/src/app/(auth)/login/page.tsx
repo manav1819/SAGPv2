@@ -4,7 +4,7 @@ import type { CSSProperties } from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
-import { signInWithEmail, signInWithSSO } from '@/lib/auth/actions';
+import { signInWithEmail, signInWithSSO, signInWithMagicLink } from '@/lib/auth/actions';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 const matrixBits = [
@@ -35,6 +35,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [isLoginComplete, setIsLoginComplete] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [isMagicLinkPending, setIsMagicLinkPending] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +56,25 @@ export default function LoginPage() {
     } finally {
       setIsPending(false);
       setIsLoading(false);
+    }
+  };
+
+  const handleMagicLink = async () => {
+    if (!email) {
+      setError('Enter your email above first, then click "Email me a magic link"');
+      return;
+    }
+    setError(null);
+    setIsMagicLinkPending(true);
+    try {
+      const result = await signInWithMagicLink(email);
+      if (!result.success) {
+        setError(result.error ?? 'Could not send magic link');
+      } else {
+        setMagicLinkSent(true);
+      }
+    } finally {
+      setIsMagicLinkPending(false);
     }
   };
 
@@ -115,7 +136,12 @@ export default function LoginPage() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="sagp-label text-xs" htmlFor="password">Password</label>
+          <div className="flex items-center justify-between">
+            <label className="sagp-label text-xs" htmlFor="password">Password</label>
+            <a href="/forgot-password" className="sagp-link text-xs">
+              Forgot password?
+            </a>
+          </div>
           <input
             id="password"
             type="password"
@@ -126,6 +152,12 @@ export default function LoginPage() {
             className="sagp-input"
           />
         </div>
+
+        {magicLinkSent && (
+          <p className="rounded-md bg-cyan-900/20 px-3 py-2 text-xs text-cyan-300 border border-cyan-500/30">
+            Magic link sent to {email}. Check your inbox.
+          </p>
+        )}
 
         {error && (
           <p className="rounded-md bg-red-900/30 px-3 py-2 text-xs text-red-400 border border-red-500/30">
@@ -139,6 +171,15 @@ export default function LoginPage() {
           className="sagp-btn sagp-btn-primary w-full"
         >
           {isPending ? 'Signing in…' : 'Sign In'}
+        </button>
+
+        <button
+          type="button"
+          disabled={isMagicLinkPending}
+          onClick={handleMagicLink}
+          className="sagp-btn sagp-btn-ghost w-full text-xs"
+        >
+          {isMagicLinkPending ? 'Sending magic link…' : 'Email me a magic link instead'}
         </button>
       </form>
 

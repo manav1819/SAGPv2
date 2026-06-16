@@ -25,6 +25,16 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
+  // /auth/confirm is the emailRedirectTo/redirectTo target for signup
+  // confirmation, magic-link, and password-reset emails (see
+  // src/app/auth/confirm/route.ts + src/lib/site-url.ts). It must always be
+  // reachable — regardless of auth state — so the route handler can exchange
+  // the token_hash for a session and issue its own redirect. Never gate this
+  // behind the authenticated/unauthenticated checks below.
+  if (path.startsWith('/auth/confirm')) {
+    return supabaseResponse;
+  }
+
   // Public (auth) routes
   // IMPORTANT: /auth/sso-callback is the OAuth redirectTo URL used by
   // signInWithSSO() in actions.ts (NEXT_PUBLIC_APP_URL + /auth/sso-callback).
@@ -34,6 +44,7 @@ export async function updateSession(request: NextRequest) {
   const authRoutes = [
     '/login',
     '/register',
+    '/forgot-password',
     '/sso-callback',
     '/auth/sso-callback',
     '/oauth',

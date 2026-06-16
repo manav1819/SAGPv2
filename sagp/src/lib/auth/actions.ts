@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSiteURL } from '@/lib/site-url';
 import type { Profile, OrgMembership } from '@/types/database';
 
 export interface AuthSignUpMetadata {
@@ -63,6 +64,10 @@ export async function signUpWithEmail(
           last_name: metadata.last_name,
           role: metadata.role || 'employee',
         },
+        // Where the confirmation email link lands after Supabase verifies
+        // the token. Resolves to localhost in dev and the deployed Vercel
+        // URL in production — see getSiteURL().
+        emailRedirectTo: `${getSiteURL()}/auth/confirm?next=/dashboard`,
       },
     });
 
@@ -89,6 +94,83 @@ export async function signUpWithEmail(
 }
 
 /**
+ * Send a one-time-password "magic link" sign-in email.
+ * The link lands on /auth/confirm, which exchanges the token for a
+ * session and redirects to the dashboard.
+ */
+export async function signInWithMagicLink(email: string) {
+  try {
+    const supabase = await createServerSupabaseClient();
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${getSiteURL()}/auth/confirm?next=/dashboard`,
+      },
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An error occurred',
+    };
+  }
+}
+
+/**
+ * Send a password-reset email. The link lands on /auth/confirm?next=/reset-password,
+ * which exchanges the token for a recovery session before the user picks a new password.
+ */
+export async function requestPasswordReset(email: string) {
+  try {
+    const supabase = await createServerSupabaseClient();
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${getSiteURL()}/auth/confirm?next=/reset-password`,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An error occurred',
+    };
+  }
+}
+
+/**
+ * Update the current user's password. Called from /reset-password once a
+ * recovery session has been established via /auth/confirm.
+ */
+export async function updatePassword(newPassword: string) {
+  try {
+    const supabase = await createServerSupabaseClient();
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An error occurred',
+    };
+  }
+}
+
+/**
  * Sign in with SSO provider
  */
 export async function signInWithSSO(
@@ -103,7 +185,7 @@ export async function signInWithSSO(
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: supabaseProvider,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/sso-callback`,
+        redirectTo: `${getSiteURL()}/auth/sso-callback`,
       },
     });
 

@@ -7,19 +7,56 @@ import { SCENARIOS } from '@/data/scenarios';
 import { ScenarioCard } from '@/components/lobby/ScenarioCard';
 import { PlayerProfile } from '@/components/lobby/PlayerProfile';
 import { useGameStore, useLastResult } from '@/lib/stores/useGameStore';
+import { useGameSave } from '@/lib/hooks/useGameSave';
+import { ResumeGameDialog } from '@/components/game/ResumeGameDialog';
+import {
+  HUMAN_FIREWALL_SCHEMA_VERSION,
+  describeHumanFirewallState,
+  isResumableHumanFirewallState,
+  restoreHumanFirewallState,
+  serializeHumanFirewallState,
+  type HumanFirewallSaveState,
+} from '@/lib/game-save/adapters/humanFirewallSaveAdapter';
 
 export default function HumanFirewallLobby() {
   const router = useRouter();
   const { resetCallState } = useGameStore();
   const lastResult = useLastResult();
 
+  // Checks Supabase (+ localStorage cache) for an in-progress save on mount.
+  // Autosaving itself happens on the scenario page — see [scenarioId]/page.tsx.
+  const { existingSave, promptResume, continueGame, startNewGame } =
+    useGameSave<HumanFirewallSaveState>({
+      gameId: 'human-firewall',
+      schemaVersion: HUMAN_FIREWALL_SCHEMA_VERSION,
+      restoreState: restoreHumanFirewallState,
+      serializeState: serializeHumanFirewallState,
+      describe: describeHumanFirewallState,
+    });
+
+  const canResume = !!existingSave && isResumableHumanFirewallState(existingSave.state);
+
   const handlePlay = (scenarioId: string) => {
     resetCallState();
     router.push(`/game/human-firewall/${scenarioId}`);
   };
 
+  const handleContinue = () => {
+    if (!existingSave) return;
+    continueGame();
+    const scenarioId = existingSave.state.call.scenarioId;
+    if (scenarioId) router.push(`/game/human-firewall/${scenarioId}`);
+  };
+
   return (
     <div className="min-h-screen sagp-main">
+      <ResumeGameDialog
+        open={canResume && promptResume}
+        gameTitle="Operation Human Firewall"
+        save={existingSave}
+        onContinue={handleContinue}
+        onStartNew={startNewGame}
+      />
       <div className="sagp-container">
         {/* Hero */}
         <motion.div
