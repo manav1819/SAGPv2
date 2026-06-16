@@ -155,7 +155,7 @@ export const GAMES: GameConfig[] = [
     id: 'cyberforge',
     title: 'CyberForge',
     description:
-      'Combine cybersecurity concepts like elements in an alchemy game. Merge tools, threats, and defences to discover 70 unique skills — from Phishing to Nation-State Attacks. Each discovery unlocks a real-world info card.',
+      'Combine cybersecurity concepts like elements in an alchemy game. Merge tools, threats, and defences to discover 70 unique skills - from Phishing to Nation-State Attacks. Each discovery unlocks a real-world info card.',
     type: 'iframe',
     category: 'Security Awareness',
     difficulty: 2,
@@ -163,13 +163,17 @@ export const GAMES: GameConfig[] = [
     estimatedMinutes: 15,
     iframeUrl: '/cyberforge/index.html',
     active: true,
+<<<<<<< HEAD
     icon: '⚡',
+=======
+    icon: '\u26A1',
+>>>>>>> 13aad6f9c9a1d73d8bf83bab27a26d290b29a682
   },
   {
     id: 'carnival-shooter',
     title: 'Cyber Carnival: Threat Hunt',
     description:
-      'Step into a neon cyberpunk carnival and shoot the threats — weak passwords, phishing emails, mystery USBs — while protecting the good targets. Rack up your combo, survive boss waves, and prove your security instincts.',
+      'Step into a neon cyberpunk carnival and shoot the threats - weak passwords, phishing emails, mystery USBs - while protecting the good targets. Rack up your combo, survive boss waves, and prove your security instincts.',
     type: 'iframe',
     category: 'Threat Detection',
     difficulty: 2,
