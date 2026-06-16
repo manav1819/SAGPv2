@@ -97,6 +97,11 @@
       <input id="search-input" type="text" placeholder="Search elements..." autocomplete="off"/>
     </div>
     <div id="inventory"></div>
+    <div id="sidebar-footer" style="padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;">
+      <button id="btn-save-exit" style="width:100%;padding:8px 0;background:linear-gradient(135deg,var(--cyan),#00b8d9);color:#000;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;border:none;border-radius:var(--radius);cursor:pointer;transition:opacity 0.2s;">
+        ✓ SAVE &amp; EXIT
+      </button>
+    </div>
   </div>
   <div id="workspace">
     <div id="grid-overlay"></div>
@@ -347,6 +352,8 @@ function updateProgress(){
   $('total-count').textContent=TOTAL;
   $('progress-bar-fill').style.width=`${Math.round(count/TOTAL*100)}%`;
   $('xp-display').textContent=`XP: ${state.xp}`;
+  // Auto-fire completion when all elements discovered
+  if(count>=TOTAL)fireGameComplete();
 }
 
 $('search-input').addEventListener('input',e=>renderInventory(e.target.value));
@@ -545,6 +552,30 @@ function postXP(xp,elemId){
   }catch(e){}
 }
 
+// ── SAGP Integration Bridge ───────────────────────────────────────────────────
+// Fire GAME_COMPLETE so the parent IframeGame host can persist the session
+// through the full engine pipeline (points, streak, badges, risk score, persona).
+// Guard with a flag so we only fire once per session.
+function fireGameComplete(){
+  if(window.__sagpCyberforgeResultSent)return;
+  window.__sagpCyberforgeResultSent=true;
+  const totalDiscovered=state.discovered.size;
+  const score=Math.min(state.xp,3000);
+  const passed=totalDiscovered>=10; // ≥10 elements discovered = meaningful session
+  try{
+    window.parent.postMessage({
+      type:'GAME_COMPLETE',
+      score,
+      maxScore:3000,
+      passed,
+      totalXP:state.xp,
+      totalDiscovered,
+      totalElements:TOTAL,
+    },window.location.origin||'*');
+  }catch(e){}
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape')['modal-discovery','modal-warning','modal-exists'].forEach(id=>$(id).classList.add('hidden'));
 });
@@ -561,7 +592,10 @@ function init(){
   spawnCard('credential',cx+30,cy+60);
 }
 
-window.addEventListener('load',init);
+window.addEventListener('load',()=>{
+  init();
+  $('btn-save-exit').addEventListener('click',fireGameComplete);
+});
 </script>
 </body>
 </html>

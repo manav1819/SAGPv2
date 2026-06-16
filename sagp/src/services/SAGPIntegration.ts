@@ -1,54 +1,50 @@
 /**
- * SAGP Integration Layer — mock implementations mapping to SAGP's metrics SDK.
- * Replace the console.log bodies with real Supabase/API calls in production.
+ * SAGP Integration Layer — Human Firewall result submission.
+ *
+ * submitFullPayload is the single entry-point called by the results page.
+ * It converts the in-game metrics payload into the format expected by
+ * POST /api/game/result, which runs the full engine pipeline:
+ *
+ *   game_sessions → progress → gamification (points, streak, badges,
+ *   leaderboard) → risk score recalculation → persona classification
+ *
+ * The individual helpers below are kept for potential future use but are
+ * no longer stubs — all persistence flows through the shared API route.
  */
 
-import type { SAGPMetricsPayload, AchievementId, SocialEngineeringTechnique, ScenarioResult } from '@/types/game';
+import type { SAGPMetricsPayload } from '@/types/game';
 
-export async function saveScenarioResult(result: ScenarioResult, userId: string): Promise<void> {
-  console.log('[SAGP] saveScenarioResult', { userId, scenarioId: result.scenarioId, xp: result.totalXP });
-  // TODO: await supabase.from('game_results').insert({ user_id: userId, ...result });
-}
-
-export async function saveVoiceTranscript(transcript: string, sessionId: string, nodeId: string): Promise<void> {
-  console.log('[SAGP] saveVoiceTranscript', { sessionId, nodeId, length: transcript.length });
-  // TODO: store transcript for compliance / review
-}
-
-export async function saveThreatIndicators(indicators: SocialEngineeringTechnique[], sessionId: string): Promise<void> {
-  console.log('[SAGP] saveThreatIndicators', { sessionId, indicators });
-}
-
-export async function saveAccuracy(accuracyPercent: number, sessionId: string): Promise<void> {
-  console.log('[SAGP] saveAccuracy', { sessionId, accuracyPercent });
-}
-
-export async function saveTimeSpent(durationSeconds: number, scenarioId: string, userId: string): Promise<void> {
-  console.log('[SAGP] saveTimeSpent', { userId, scenarioId, durationSeconds });
-}
-
-export async function saveAchievements(achievements: AchievementId[], userId: string): Promise<void> {
-  console.log('[SAGP] saveAchievements', { userId, achievements });
-  // TODO: trigger achievement badge notifications on the platform
-}
-
-export async function saveXP(xp: number, userId: string, source: string): Promise<void> {
-  console.log('[SAGP] saveXP', { userId, xp, source });
-  // TODO: await supabase.rpc('award_xp', { p_user_id: userId, p_amount: xp, p_source: source });
-}
-
-export async function submitLeaderboardScore(score: number, userId: string, scenarioId: string): Promise<void> {
-  console.log('[SAGP] submitLeaderboardScore', { userId, scenarioId, score });
-  // TODO: upsert leaderboard entry
-}
-
+/**
+ * Submit a completed Human Firewall scenario to the shared game result API.
+ * This is the only function that must be called at the end of every scenario.
+ */
 export async function submitFullPayload(payload: SAGPMetricsPayload): Promise<void> {
-  await Promise.allSettled([
-    saveAccuracy(payload.accuracyPercent, payload.sessionId),
-    saveTimeSpent(payload.durationSeconds, payload.scenarioId, payload.userId),
-    saveXP(payload.totalXP, payload.userId, `scenario:${payload.scenarioId}`),
-    saveThreatIndicators(payload.threatIndicators, payload.sessionId),
-    submitLeaderboardScore(payload.leaderboardScore, payload.userId, payload.scenarioId),
-    payload.achievementsUnlocked.length > 0 && saveAchievements(payload.achievementsUnlocked, payload.userId),
-  ]);
+  const result = {
+    score:    payload.totalXP,
+    maxScore: 12000,
+    passed:   payload.accuracyPercent >= 50,
+    // Surface extra metrics in game_state for analytics engines
+    accuracyPercent:     payload.accuracyPercent,
+    durationSeconds:     payload.durationSeconds,
+    threatIndicators:    payload.threatIndicators,
+    achievementsUnlocked: payload.achievementsUnlocked,
+    scenarioId:          payload.scenarioId,
+  };
+
+  const res = await fetch('/api/game/result', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      gameId:     'human-firewall',
+      sessionRef: payload.sessionId,
+      result,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(
+      `[SAGPIntegration] submitFullPayload failed: ${body.error ?? `HTTP ${res.status}`}`
+    );
+  }
 }

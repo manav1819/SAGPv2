@@ -46,6 +46,8 @@ const GAME_MODULE_META: Record<string, { category: ModuleCategory; gameType: Gam
   vishing:            { category: 'social_engineering', gameType: 'scenario'     },
   '3d-office':        { category: 'device_security',    gameType: 'scenario'     },
   'carnival-shooter': { category: 'phishing',           gameType: 'phishing_sim' },
+  cyberforge:         { category: 'phishing',           gameType: 'quiz'         },
+  'human-firewall':   { category: 'social_engineering', gameType: 'scenario'     },
 };
 
 function classifyTime(seconds: number): TimeBucket {

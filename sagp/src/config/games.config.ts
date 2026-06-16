@@ -163,7 +163,9 @@ export const GAMES: GameConfig[] = [
     estimatedMinutes: 15,
     iframeUrl: '/cyberforge/index.html',
     active: true,
-    icon: '\u26A1',
+    icon: '⚡',
+  },
+  {
     id: 'carnival-shooter',
     title: 'Cyber Carnival: Threat Hunt',
     description:
@@ -181,7 +183,7 @@ export const GAMES: GameConfig[] = [
     id: 'human-firewall',
     title: 'Operation Human Firewall',
     description:
-      'Receive live, malicious phone calls from social engineers trying to steal credentials, money, and access. Identify the tactics, verify callers, protect information, and report incidents — before it\'s too late.',
+      "Receive live, malicious phone calls from social engineers trying to steal credentials, money, and access. Identify the tactics, verify callers, protect information, and report incidents — before it's too late.",
     type: 'phaser', // overridden by href — no Phaser scene used
     category: 'Social Engineering',
     difficulty: 2,
@@ -189,8 +191,6 @@ export const GAMES: GameConfig[] = [
     estimatedMinutes: 20,
     href: '/game/human-firewall',
     active: true,
-    icon: '📞',
+    icon: '\u{1F4DE}',
   },
 ];
-
-// NOTE: entry appended by CyberForge feature addition
