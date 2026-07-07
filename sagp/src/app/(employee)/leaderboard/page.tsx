@@ -25,7 +25,8 @@ interface GameResult {
 type LeaderboardScope = 'Global' | 'Organisation' | 'Department' | 'Weekly';
 
 export default function LeaderboardPage() {
-  const { profile, orgId } = useAuth();
+  const { profile, membership } = useAuth();
+  const orgId = membership?.org_id;
   const [scope, setScope] = useState<LeaderboardScope>('Global');
   const [rankings, setRankings] = useState<LeaderboardEntry[]>([]);
   const [userResults, setUserResults] = useState<GameResult[]>([]);
@@ -33,7 +34,10 @@ export default function LeaderboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profile?.id || !orgId) return;
+    if (!profile?.id || !orgId) {
+      setLoading(false);
+      return;
+    }
 
     const fetchLeaderboard = async () => {
       try {
