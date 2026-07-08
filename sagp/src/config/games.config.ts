@@ -155,7 +155,7 @@ export const GAMES: GameConfig[] = [
     id: 'cyberforge',
     title: 'CyberForge',
     description:
-      'Combine cybersecurity concepts like elements in an alchemy game. Merge tools, threats, and defences to discover 70 unique skills - from Phishing to Nation-State Attacks. Each discovery unlocks a real-world info card.',
+      'Combine cybersecurity concepts like elements in an alchemy game. Merge tools, threats, and defences to discover 70 unique skills — from Phishing to Nation-State Attacks. Each discovery unlocks a real-world info card.',
     type: 'iframe',
     category: 'Security Awareness',
     difficulty: 2,
@@ -163,7 +163,7 @@ export const GAMES: GameConfig[] = [
     estimatedMinutes: 15,
     iframeUrl: '/cyberforge/index.html',
     active: true,
-    icon: '⚡',
+    icon: '\u26A1',
   },
   {
     id: 'carnival-shooter',
