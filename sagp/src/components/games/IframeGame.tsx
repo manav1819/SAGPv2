@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trophy, Shield, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import type { GameConfig } from '@/config/games.config';
 import { PERSONA_LABELS, RISK_TIER_COLORS } from '@/lib/hooks/useLiveData';
+import { useGameSave } from '@/lib/hooks/useGameSave';
+import { ResumeGameDialog } from '@/components/game/ResumeGameDialog';
 
 /** How many seconds to wait on the success overlay before auto-redirecting */
 const AUTO_REDIRECT_SECONDS = 10;
@@ -27,6 +29,9 @@ interface GameResult {
 
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error';
 
+/** Opaque save payload — shape is entirely owned by each game's own engine. */
+type IframeSaveState = Record<string, unknown>;
+
 /**
  * Generic iframe game host.
  *
@@ -34,6 +39,18 @@ type SubmitState = 'idle' | 'submitting' | 'success' | 'error';
  * - Submits result to /api/game/result which runs the full engine pipeline.
  * - Shows a completion overlay with live risk score, persona, points.
  * - Auto-redirects to /dashboard after AUTO_REDIRECT_SECONDS seconds.
+ *
+ * Save/resume bridge (opt-in per game, zero effect on games that don't
+ * implement it):
+ *   - Game → host:  postMessage({ type: 'SAGP_GAME_READY' })
+ *                   postMessage({ type: 'SAGP_SAVE_STATE', payload: {...} })
+ *   - Host → game:  postMessage({ type: 'SAGP_RESTORE_STATE', payload: {...} })
+ * On mount we check for an existing save via useGameSave(). If one exists
+ * we show <ResumeGameDialog> before the iframe ever loads; "Continue"
+ * queues the saved payload to be sent the moment the iframe announces
+ * SAGP_GAME_READY, "Start New" clears it and boots the iframe cold.
+ * Games that never post these messages simply never accumulate a save —
+ * this path is entirely dormant for them.
  */
 export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
   const router = useRouter();
@@ -43,6 +60,31 @@ export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
   const [countdown, setCountdown] = useState(AUTO_REDIRECT_SECONDS);
   const [mounted, setMounted] = useState(false);
   const submittedRef = useRef(false); // prevent double-submit
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Holds the most recent state the iframe told us about, so the periodic
+  // autosave / beforeunload save in useGameSave always has something fresh
+  // to persist even if the game itself only pushes updates occasionally.
+  const lastStateRef = useRef<IframeSaveState>({});
+  // Save queued by "Continue" — flushed to the iframe once it signals ready.
+  const pendingRestoreRef = useRef<IframeSaveState | null>(null);
+
+  const {
+    existingSave,
+    promptResume,
+    isChecking: isCheckingSave,
+    continueGame,
+    startNewGame,
+    saveNow,
+  } = useGameSave<IframeSaveState>({
+    gameId: game.id,
+    schemaVersion: 1,
+    sessionRef,
+    serializeState: () => lastStateRef.current,
+    restoreState: (state) => {
+      pendingRestoreRef.current = state;
+    },
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -81,7 +123,31 @@ export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
         event.origin === 'null' ||
         event.origin === '';
       if (!sameOrigin) return;
-      if (event.data?.type !== 'GAME_COMPLETE') return;
+
+      const msgType = event.data?.type;
+
+      // ── Save/resume bridge (optional; see class-level doc comment) ──────
+      if (msgType === 'SAGP_GAME_READY') {
+        if (pendingRestoreRef.current) {
+          iframeRef.current?.contentWindow?.postMessage(
+            { type: 'SAGP_RESTORE_STATE', payload: pendingRestoreRef.current },
+            window.location.origin
+          );
+          pendingRestoreRef.current = null;
+        }
+        return;
+      }
+
+      if (msgType === 'SAGP_SAVE_STATE') {
+        const payload = event.data?.payload;
+        if (payload && typeof payload === 'object') {
+          lastStateRef.current = payload as IframeSaveState;
+          void saveNow();
+        }
+        return;
+      }
+
+      if (msgType !== 'GAME_COMPLETE') return;
       if (submittedRef.current) return;
       submittedRef.current = true;
 
@@ -103,6 +169,8 @@ export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
         const data = await res.json();
         setGameResult(data);
         setSubmitState('success');
+        // Game finished — any lingering save for it is now stale.
+        void startNewGame();
       } catch (err) {
         console.error('[IframeGame] result submission failed:', err);
         setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
@@ -113,7 +181,7 @@ export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
 
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [game.id, sessionRef]);
+  }, [game.id, sessionRef, saveNow, startNewGame]);
 
   return (
     <div className="flex h-screen flex-col bg-slate-900 relative">
@@ -132,11 +200,13 @@ export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
         <span className="text-xs text-slate-500">Playing as {playerName}</span>
       </div>
 
-      {/* Game frame */}
+      {/* Game frame — held back until we know whether to offer a resume prompt,
+          so an instrumented game never boots cold when a save exists. */}
       <div className="flex-1 overflow-hidden">
-        {mounted ? (
+        {mounted && !isCheckingSave && !promptResume ? (
           gameUrl ? (
             <iframe
+              ref={iframeRef}
               src={gameUrl}
               className="h-full w-full border-0"
               title={game.title}
@@ -153,6 +223,14 @@ export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
           </div>
         )}
       </div>
+
+      <ResumeGameDialog
+        open={promptResume}
+        gameTitle={game.title}
+        save={existingSave}
+        onContinue={continueGame}
+        onStartNew={startNewGame}
+      />
 
       {/* Submission overlay — only shown while pipeline is running or after completion */}
       {submitState !== 'idle' && (

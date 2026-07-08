@@ -118,6 +118,13 @@ export class HUD {
             g.y = this.scene.scale.height - 64;
             this._ammoIcons.push(g);
         }
+        // Dirty-state cache — avoids redrawing every frame when nothing changed
+        this._lastAmmoCount   = -1;
+        this._lastReloading   = false;
+        this._ammoRedrawAt    = 0;     // next allowed redraw timestamp (reload throttle)
+        this._lastComboCount  = -1;
+        this._lastWasReloading = false; // track reload→idle transition for fill clear
+        this._tipTimer        = null;  // pending showTip delayedCall ref
     }
 
     _buildComboMeter() {
@@ -147,9 +154,10 @@ export class HUD {
 
     // ── UPDATE (called every frame) ──────────────────────────────────────────
     update(timeRemaining) {
-        const sc = this.score;
-        const am = this.ammo;
-        const df = this.diff;
+        const sc  = this.score;
+        const am  = this.ammo;
+        const df  = this.diff;
+        const now = Date.now();
 
         // Score
         this._scoreVal.setText(sc.score.toLocaleString());
@@ -162,7 +170,7 @@ export class HUD {
         const ss   = String(secs % 60).padStart(2, '0');
         const tColor = secs <= 10 ? '#ff2222' : secs <= 20 ? '#ffaa00' : '#00ffff';
         this._timerVal.setText(`${mm}:${ss}`).setColor(tColor);
-        if (secs <= 10) this._timerVal.setScale(1 + Math.sin(Date.now() / 200) * 0.05);
+        if (secs <= 10) this._timerVal.setScale(1 + Math.sin(now / 200) * 0.05);
 
         // Accuracy
         const accColor = sc.accuracy >= 80 ? '#00ff88' : sc.accuracy >= 60 ? '#ffff00' : '#ff4444';
@@ -171,12 +179,68 @@ export class HUD {
         // Wave
         this._waveVal.setText(String(df.wave));
 
-        // Ammo icons
-        const ammoCount = am.ammo;
+        // ── Ammo icons — only redraw when state changes or reload is animating ──
+        // During reload the icons pulse via Math.sin(Date.now()), so we allow
+        // a redraw at ~15fps (every 67ms). Outside reload, only redraw on change.
+        const ammoCount  = am.ammo;
+        const ammoChanged = ammoCount !== this._lastAmmoCount || am.reloading !== this._lastReloading;
+        const reloadTick  = am.reloading && now >= this._ammoRedrawAt;
+        if (ammoChanged || reloadTick) {
+            this._lastAmmoCount  = ammoCount;
+            this._lastReloading  = am.reloading;
+            if (am.reloading) this._ammoRedrawAt = now + 67; // cap reload animation to ~15fps
+            this._redrawAmmoIcons(am, ammoCount, now);
+        }
+
+        // Ammo text
+        this._ammoVal.setText(String(ammoCount));
+        if (ammoCount <= 3 && !am.reloading) {
+            const flash = Math.sin(now / 150) > 0;
+            this._ammoVal.setColor(flash ? '#ff2222' : '#ff8800');
+        } else if (am.reloading) {
+            this._ammoVal.setColor('#ff8800');
+        } else {
+            this._ammoVal.setColor('#ffffff');
+        }
+
+        // ── Reload overlay ────────────────────────────────────────────────────
+        if (am.reloading) {
+            this._reloadBg.setVisible(true);
+            this._reloadTxt.setVisible(true);
+            const W = 1280, H = 720;
+            // Reload fill must update every frame for smooth progress bar
+            this._reloadFill.clear();
+            this._reloadFill.fillStyle(0xff8800, 1);
+            this._reloadFill.fillRect(W/2 - 98, H/2 + 62, 196 * am.reloadPct, 7);
+            this._lastWasReloading = true;
+        } else {
+            this._reloadBg.setVisible(false);
+            this._reloadTxt.setVisible(false);
+            // Only clear fill once when transitioning from reload to idle
+            if (this._lastWasReloading) {
+                this._reloadFill.clear();
+                this._lastWasReloading = false;
+            }
+        }
+
+        // ── Combo meter — only redraw when count changes ──────────────────────
+        if (sc.comboCount !== this._lastComboCount) {
+            this._lastComboCount = sc.comboCount;
+            this._drawComboMeter(sc.comboCount);
+        }
+
+        // Kill / FF counts
+        this._killVal.setText(String(sc.threatsKilled));
+        this._ffVal.setText(String(sc.friendlyFire));
+        if (sc.friendlyFire > 0) this._ffVal.setColor('#ff4444');
+    }
+
+    /** Redraws all ammo icon graphics. Only called when state actually changes. */
+    _redrawAmmoIcons(am, ammoCount, now) {
         this._ammoIcons.forEach((g, i) => {
             g.clear();
             if (am.reloading) {
-                g.fillStyle(0xff8800, 0.4 + Math.sin(Date.now() / 150 + i) * 0.3);
+                g.fillStyle(0xff8800, 0.4 + Math.sin(now / 150 + i) * 0.3);
             } else {
                 g.fillStyle(i < ammoCount ? 0x00ff88 : 0x333333, 1);
             }
@@ -186,43 +250,12 @@ export class HUD {
                 g.strokeRect(0, 0, 8, 16);
             }
         });
-
-        // Ammo text
-        this._ammoVal.setText(String(ammoCount));
-        if (ammoCount <= 3 && !am.reloading) {
-            const flash = Math.sin(Date.now() / 150) > 0;
-            this._ammoVal.setColor(flash ? '#ff2222' : '#ff8800');
-        } else if (am.reloading) {
-            this._ammoVal.setColor('#ff8800');
-        } else {
-            this._ammoVal.setColor('#ffffff');
-        }
-
-        // Reload overlay
-        if (am.reloading) {
-            this._reloadBg.setVisible(true);
-            this._reloadTxt.setVisible(true);
-            const W = 1280, H = 720;
-            this._reloadFill.clear();
-            this._reloadFill.fillStyle(0xff8800, 1);
-            this._reloadFill.fillRect(W/2 - 98, H/2 + 62, 196 * am.reloadPct, 7);
-        } else {
-            this._reloadBg.setVisible(false);
-            this._reloadTxt.setVisible(false);
-            this._reloadFill.clear();
-        }
-
-        // Combo meter
-        this._drawComboMeter(sc.comboCount);
-
-        // Kill / FF counts
-        this._killVal.setText(String(sc.threatsKilled));
-        this._ffVal.setText(String(sc.friendlyFire));
-        if (sc.friendlyFire > 0) this._ffVal.setColor('#ff4444');
     }
 
     showFocusBanner(show) {
         const b = this._focusBanner;
+        // Always kill existing tweens first to prevent accumulation
+        this.scene.tweens.killTweensOf(b);
         if (show) {
             this.scene.tweens.add({ targets: b, alpha: 1, duration: 300 });
             this.scene.tweens.add({
@@ -230,17 +263,24 @@ export class HUD {
                 duration: 600, yoyo: true, repeat: -1, ease: 'Sine.inOut',
             });
         } else {
-            this.scene.tweens.killTweensOf(b);
             this.scene.tweens.add({ targets: b, alpha: 0, scale: 1, duration: 300 });
         }
     }
 
     showTip(text) {
+        // Cancel the pending hide-timer before creating a new one.
+        // Without this, every hit queues a delayedCall(3500) that stacks
+        // indefinitely — hundreds of timers after a long combo run.
+        if (this._tipTimer) {
+            this._tipTimer.remove();
+            this._tipTimer = null;
+        }
         this._tipTxt.setText(`💡 ${text}`).setVisible(true);
         this._tipBg.setVisible(true);
-        this.scene.time.delayedCall(3500, () => {
+        this._tipTimer = this.scene.time.delayedCall(3500, () => {
             this._tipTxt.setVisible(false);
             this._tipBg.setVisible(false);
+            this._tipTimer = null;
         });
     }
 }

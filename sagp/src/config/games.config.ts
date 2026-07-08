@@ -169,7 +169,7 @@ export const GAMES: GameConfig[] = [
     id: 'carnival-shooter',
     title: 'Cyber Carnival: Threat Hunt',
     description:
-      'Step into a neon cyberpunk carnival and shoot the threats — weak passwords, phishing emails, mystery USBs — while protecting the good targets. Rack up your combo, survive boss waves, and prove your security instincts.',
+      'Step into a neon cyberpunk carnival and shoot the threats - weak passwords, phishing emails, mystery USBs - while protecting the good targets. Rack up your combo, survive boss waves, and prove your security instincts.',
     type: 'iframe',
     category: 'Threat Detection',
     difficulty: 3,

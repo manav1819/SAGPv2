@@ -12,6 +12,15 @@ export class GameOverScene extends Phaser.Scene {
         const W = 1280, H = 720;
         const s = this.summary;
 
+        // Cursor must always be visible on the results screen.
+        document.body.style.cursor = 'default';
+        try { this.input.setDefaultCursor('default'); } catch (e) {}
+        try {
+            if (this.input.mouse && this.input.mouse.locked) {
+                this.input.mouse.releasePointerLock();
+            }
+        } catch (e) {}
+
         // ── SAGP Integration Bridge ────────────────────────────────────────────
         // Fire immediately so the parent Next.js IframeGame host receives the
         // completed session result and can run the full engine pipeline.

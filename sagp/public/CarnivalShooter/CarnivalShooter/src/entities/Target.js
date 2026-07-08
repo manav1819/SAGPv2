@@ -1,6 +1,6 @@
 // =============================================================================
 // Target — procedurally-drawn shooting gallery target
-// Supports multiple movement patterns and visual types
+// Unified carnival visual style: players must read content, not match colours.
 // =============================================================================
 export class Target extends Phaser.GameObjects.Container {
     /**
@@ -24,9 +24,8 @@ export class Target extends Phaser.GameObjects.Container {
         this._baseY        = startPos.y;
         this._velX         = startPos.velX * speedMult;
         this._velY         = startPos.velY * speedMult;
-        this._flickerTimer = 0;
-        this._hidden       = false;
         this._hitFlash     = 0;
+        this._destroying   = false;
 
         this.W = 110;
         this.H = 90;
@@ -48,290 +47,411 @@ export class Target extends Phaser.GameObjects.Container {
     }
 
     // ── GRAPHICS BUILD ────────────────────────────────────────────────────────
+    // ALL targets use the same carnival wood-panel look.
+    // Visual distinction between good/bad is REMOVED by design:
+    // the player must read the label/subLabel to identify threats.
     _buildGraphics() {
-        const { primaryColor, accentColor, bgColor, label, subLabel, icon, isGood } = this.typeData;
+        const { label, subLabel, icon, primaryColor, accentColor } = this.typeData;
         const W = this.W, H = this.H;
-        const cx = 0, cy = 0;
 
-        // --- Background panel ---
+        // Unified carnival palette (same for every target)
+        const WOOD_DARK   = 0x1E0E05;
+        const WOOD_MID    = 0x2A1500;
+        const BRASS       = primaryColor;    // tarnished brass from config
+        const BRASS_LIGHT = accentColor;     // light gold from config
+        const STRIPE      = 0x8B1A0A;       // carnival booth red (decorative only)
+
         const g = this.scene.add.graphics();
 
-        // outer glow (multiple strokes)
-        const glowAlphas = [0.12, 0.22, 0.4, 0.9];
-        const glowWidths = [12, 8, 4, 2];
-        glowWidths.forEach((lw, i) => {
-            g.lineStyle(lw, primaryColor, glowAlphas[i]);
-            g.strokeRoundedRect(cx - W/2, cy - H/2, W, H, 8);
-        });
+        // ── Outer brass border ───────────────────────────────────────────────
+        g.lineStyle(3, BRASS, 0.95);
+        g.strokeRoundedRect(-W/2, -H/2, W, H, 8);
 
-        // fill
-        g.fillStyle(bgColor || (isGood ? 0x001a10 : 0x1a0000), 1);
-        g.fillRoundedRect(cx - W/2 + 1, cy - H/2 + 1, W - 2, H - 2, 7);
+        // ── Dark wood fill ───────────────────────────────────────────────────
+        g.fillStyle(WOOD_MID, 1);
+        g.fillRoundedRect(-W/2 + 2, -H/2 + 2, W - 4, H - 4, 7);
 
-        // top stripe (accent)
-        g.fillStyle(primaryColor, 0.8);
-        g.fillRoundedRect(cx - W/2 + 1, cy - H/2 + 1, W - 2, 18, { tl: 7, tr: 7, bl: 0, br: 0 });
-
-        // danger bars on bad targets
-        if (!isGood) {
-            g.lineStyle(1, primaryColor, 0.3);
-            for (let i = 0; i < 4; i++) {
-                g.strokeRect(cx - W/2 + 4 + i * 2, cy - H/2 + 4 + i * 2, W - 8 - i * 4, H - 8 - i * 4);
-            }
+        // ── Horizontal wood grain (subtle texture) ───────────────────────────
+        g.lineStyle(1, WOOD_DARK, 0.55);
+        for (let i = 0; i < 4; i++) {
+            const gy = -H/2 + 22 + i * 16;
+            g.beginPath();
+            g.moveTo(-W/2 + 6, gy);
+            g.lineTo( W/2 - 6, gy);
+            g.strokePath();
         }
+
+        // ── Inner inset border ───────────────────────────────────────────────
+        g.lineStyle(1, BRASS, 0.35);
+        g.strokeRoundedRect(-W/2 + 5, -H/2 + 5, W - 10, H - 10, 5);
+
+        // ── Carnival stripe (top, decorative — same colour for all) ──────────
+        g.fillStyle(STRIPE, 1);
+        g.fillRoundedRect(-W/2 + 2, -H/2 + 2, W - 4, 18,
+            { tl: 7, tr: 7, bl: 0, br: 0 });
+
+        // ── Corner rivets ────────────────────────────────────────────────────
+        g.fillStyle(BRASS, 0.65);
+        [
+            [-W/2 + 8, -H/2 + 8],
+            [ W/2 - 8, -H/2 + 8],
+            [-W/2 + 8,  H/2 - 8],
+            [ W/2 - 8,  H/2 - 8],
+        ].forEach(([rx, ry]) => g.fillCircle(rx, ry, 2.5));
 
         this.add(g);
         this._bg = g;
 
-        // --- Icon symbol (drawn) ---
-        this._drawIcon(icon, primaryColor, accentColor, isGood);
+        // ── Icon (all icons drawn in the unified brass palette) ───────────────
+        this._drawIcon(icon, BRASS, BRASS_LIGHT);
 
-        // --- Sub-label (top stripe text) ---
-        const subLbl = this.scene.add.text(0, -H/2 + 9, subLabel, {
+        // ── Sub-label (white text on red stripe) ─────────────────────────────
+        const subLbl = this.scene.add.text(0, -H/2 + 10, subLabel, {
             fontFamily: '"Courier New", monospace',
             fontSize: '9px', fontStyle: 'bold',
-            color: '#000000',
+            color: '#FFFFFF',
         }).setOrigin(0.5, 0.5);
         this.add(subLbl);
 
-        // --- Main label ---
-        const mainColor = isGood ? '#00ff88' : '#ffffff';
+        // ── Main label — SAME warm amber for ALL targets ──────────────────────
+        // Players must read this, not rely on colour.
         const mainLbl = this.scene.add.text(0, H/2 - 22, label, {
             fontFamily: '"Courier New", monospace',
             fontSize: '13px', fontStyle: 'bold',
-            color: mainColor,
+            color: '#FFE082',
             stroke: '#000000', strokeThickness: 2,
-            shadow: { blur: 8, color: mainColor, fill: true },
             wordWrap: { width: W - 10 },
         }).setOrigin(0.5, 0.5);
         this.add(mainLbl);
 
-        // warning triangle for bad targets
-        if (!isGood) {
-            const warn = this.scene.add.text(W/2 - 10, -H/2 + 3, '⚠', {
-                fontSize: '10px', color: '#ffff00',
-            }).setOrigin(0.5, 0);
-            this.add(warn);
-        } else {
-            const check = this.scene.add.text(W/2 - 10, -H/2 + 3, '✓', {
-                fontSize: '10px', color: '#00ff88',
-            }).setOrigin(0.5, 0);
-            this.add(check);
-        }
+        // NO corner badges (⚠ / ✓) — they were colour-based shortcuts.
+        // NO "danger bars" pattern on bad targets.
     }
 
-    _drawIcon(icon, color, accent, isGood) {
+    // All icons use the same brass/gold colour — shape conveys meaning, not colour.
+    _drawIcon(icon, color, accent) {
         const g = this.scene.add.graphics();
-        const W = this.W, H = this.H;
-        // center zone: cx=0, cy=-8 (leaving room for label at bottom)
-        const ix = 0, iy = -6;
-        const ic = color;
+        const ix = 0, iy = -6;     // icon centre (leaves room for label at bottom)
         const ia = 0.9;
 
-        g.fillStyle(ic, 0.15);
+        // Icon background circle (unified)
+        g.fillStyle(color, 0.12);
         g.fillCircle(ix, iy, 22);
-        g.lineStyle(2, ic, ia);
+        g.lineStyle(2, color, ia);
         g.strokeCircle(ix, iy, 22);
 
-        g.lineStyle(2, ic, ia);
-        g.fillStyle(ic, 0.8);
+        g.lineStyle(2, color, ia);
+        g.fillStyle(color, 0.85);
 
         switch (icon) {
+            // ── BAD ICONS ──────────────────────────────────────────────────────
             case 'lock_broken': {
-                // broken padlock
+                // Broken open padlock
                 g.strokeRect(ix - 10, iy - 5, 20, 15);
-                g.beginPath(); g.moveTo(ix - 7, iy - 5);
-                g.lineTo(ix - 7, iy - 14); g.lineTo(ix + 4, iy - 14);
+                g.beginPath();
+                g.moveTo(ix - 7, iy - 5);
+                g.lineTo(ix - 7, iy - 14);
+                g.lineTo(ix + 4, iy - 14);
                 g.strokePath();
-                // crack
-                g.lineStyle(2, 0xffff00, 1);
-                g.beginPath(); g.moveTo(ix, iy - 2); g.lineTo(ix + 3, iy + 3); g.lineTo(ix - 1, iy + 8); g.strokePath();
+                // Crack in brass
+                g.lineStyle(2, accent, 0.9);
+                g.beginPath();
+                g.moveTo(ix,     iy - 2);
+                g.lineTo(ix + 3, iy + 3);
+                g.lineTo(ix - 1, iy + 8);
+                g.strokePath();
                 break;
             }
             case 'email_evil': {
-                // envelope with skull
+                // Envelope with skull
                 g.strokeRect(ix - 14, iy - 9, 28, 18);
-                g.beginPath(); g.moveTo(ix - 14, iy - 9); g.lineTo(ix, iy + 2); g.lineTo(ix + 14, iy - 9); g.strokePath();
-                g.fillStyle(0xff0000, 0.8);
+                g.beginPath();
+                g.moveTo(ix - 14, iy - 9);
+                g.lineTo(ix,      iy + 2);
+                g.lineTo(ix + 14, iy - 9);
+                g.strokePath();
+                // Skull (brass, not red — shape is the threat cue)
+                g.fillStyle(color, 0.7);
                 g.fillCircle(ix, iy + 3, 6);
-                g.fillStyle(0x000000, 1);
+                g.fillStyle(0x1E0E05, 1);
                 g.fillCircle(ix - 2, iy + 2, 1.5);
                 g.fillCircle(ix + 2, iy + 2, 1.5);
                 g.fillRect(ix - 3, iy + 5, 6, 2);
                 break;
             }
             case 'usb_skull': {
+                // USB drive with skull
                 g.fillRect(ix - 4, iy - 14, 8, 20);
                 g.fillRect(ix - 8, iy - 14, 16, 5);
-                g.fillRect(ix - 5, iy - 3, 4, 4);
-                g.fillRect(ix + 1, iy - 3, 4, 4);
-                g.fillStyle(0xff0000, 0.8);
+                g.fillRect(ix - 5, iy - 3,  4,  4);
+                g.fillRect(ix + 1, iy - 3,  4,  4);
+                g.fillStyle(color, 0.65);
                 g.fillCircle(ix, iy + 8, 7);
-                g.fillStyle(0x000000, 1);
+                g.fillStyle(0x1E0E05, 1);
                 g.fillCircle(ix - 2, iy + 7, 1.5);
                 g.fillCircle(ix + 2, iy + 7, 1.5);
                 g.fillRect(ix - 3, iy + 11, 2, 2);
-                g.fillRect(ix, iy + 11, 2, 2);
+                g.fillRect(ix,     iy + 11, 2, 2);
                 g.fillRect(ix + 3, iy + 11, 2, 2);
                 break;
             }
             case 'popup': {
-                g.fillStyle(0x220000, 1);
+                // Fake alert popup
+                g.fillStyle(0x1E0E05, 1);
                 g.fillRect(ix - 16, iy - 12, 32, 22);
-                g.lineStyle(2, 0xff4400, 1);
+                g.lineStyle(2, color, 1);
                 g.strokeRect(ix - 16, iy - 12, 32, 22);
-                g.fillStyle(0xff4400, 1);
+                g.fillStyle(color, 0.8);
                 g.fillRect(ix - 16, iy - 12, 32, 7);
-                g.fillStyle(0xffff00, 1);
+                // Warning triangle
+                g.fillStyle(accent, 1);
                 g.fillTriangle(ix, iy - 1, ix - 5, iy + 8, ix + 5, iy + 8);
-                g.fillStyle(0x000000, 1);
+                g.fillStyle(0x1E0E05, 1);
                 g.fillRect(ix - 1, iy + 1, 2, 4);
                 g.fillCircle(ix, iy + 8, 1);
                 break;
             }
             case 'file_evil': {
-                g.fillStyle(0x330000, 1);
+                // Malicious executable file
+                g.fillStyle(0x1E0E05, 1);
                 g.fillRect(ix - 11, iy - 15, 22, 26);
-                g.lineStyle(2, ic, ia);
+                g.lineStyle(2, color, ia);
                 g.strokeRect(ix - 11, iy - 15, 22, 26);
-                g.fillStyle(0xff0000, 1);
+                g.fillStyle(color, 1);
                 g.fillTriangle(ix, iy - 8, ix - 5, iy + 2, ix + 5, iy + 2);
-                g.fillStyle(0xffffff, 1);
-                g.fillRect(ix - 1, iy - 6, 2, 5); g.fillRect(ix - 1, iy + 3, 2, 2);
+                g.fillStyle(0x1E0E05, 1);
+                g.fillRect(ix - 1, iy - 6, 2, 5);
+                g.fillRect(ix - 1, iy + 3, 2, 2);
                 break;
             }
             case 'qr_evil': {
+                // Malicious QR code
                 const s = 5;
                 const pat = [[1,1,0,1,1],[1,0,1,0,1],[0,1,0,1,0],[1,0,1,0,1],[1,1,0,1,1]];
                 pat.forEach((row, r) => row.forEach((v, c) => {
-                    if (v) { g.fillStyle(ic, 0.9); g.fillRect(ix - 12 + c*s, iy - 12 + r*s, s-1, s-1); }
+                    if (v) {
+                        g.fillStyle(color, 0.9);
+                        g.fillRect(ix - 12 + c * s, iy - 12 + r * s, s - 1, s - 1);
+                    }
                 }));
-                g.fillStyle(0xff0000, 0.8); g.fillCircle(ix, iy, 5);
-                g.fillStyle(0x000000, 1); g.fillCircle(ix-2, iy-1, 1.5); g.fillCircle(ix+2, iy-1, 1.5);
-                g.fillRect(ix-3, iy+2, 6, 2);
+                // Skull overlay
+                g.fillStyle(color, 0.7);
+                g.fillCircle(ix, iy, 5);
+                g.fillStyle(0x1E0E05, 1);
+                g.fillCircle(ix - 2, iy - 1, 1.5);
+                g.fillCircle(ix + 2, iy - 1, 1.5);
+                g.fillRect(ix - 3, iy + 2, 6, 2);
                 break;
             }
             case 'money_skull': {
-                g.fillStyle(0xcc9900, 0.9); g.fillCircle(ix, iy, 14);
-                g.fillStyle(ic, 1);
+                // Scam / money with skull
+                g.fillStyle(color, 0.7);
+                g.fillCircle(ix, iy, 14);
+                g.fillStyle(0x1E0E05, 1);
                 g.fillText('$', ix - 5, iy - 8);
-                g.fillStyle(0xff0000, 0.9); g.fillCircle(ix, iy + 2, 8);
-                g.fillStyle(0x000000, 1); g.fillCircle(ix-2, iy+1, 1.5); g.fillCircle(ix+2, iy+1, 1.5);
-                g.fillRect(ix-3, iy+5, 2, 2); g.fillRect(ix, iy+5, 2, 2); g.fillRect(ix+3, iy+5, 2, 2);
+                // Skull
+                g.fillStyle(color, 0.5);
+                g.fillCircle(ix, iy + 2, 8);
+                g.fillStyle(0x1E0E05, 1);
+                g.fillCircle(ix - 2, iy + 1, 1.5);
+                g.fillCircle(ix + 2, iy + 1, 1.5);
+                g.fillRect(ix - 3, iy + 5, 2, 2);
+                g.fillRect(ix,     iy + 5, 2, 2);
+                g.fillRect(ix + 3, iy + 5, 2, 2);
                 break;
             }
             case 'shield_broken': {
-                g.beginPath(); g.moveTo(ix, iy - 14); g.lineTo(ix + 12, iy - 8);
-                g.lineTo(ix + 12, iy + 4); g.lineTo(ix, iy + 14); g.lineTo(ix - 12, iy + 4);
-                g.lineTo(ix - 12, iy - 8); g.closePath(); g.strokePath();
-                g.lineStyle(3, 0xff0000, 1);
-                g.beginPath(); g.moveTo(ix - 3, iy - 14); g.lineTo(ix + 3, iy + 14); g.strokePath();
-                g.lineStyle(2, 0xff4444, 0.8);
-                g.beginPath(); g.moveTo(ix - 8, iy - 4); g.lineTo(ix + 4, iy + 10); g.strokePath();
+                // Cracked shield (broken security)
+                g.beginPath();
+                g.moveTo(ix,      iy - 14);
+                g.lineTo(ix + 12, iy - 8);
+                g.lineTo(ix + 12, iy + 4);
+                g.lineTo(ix,      iy + 14);
+                g.lineTo(ix - 12, iy + 4);
+                g.lineTo(ix - 12, iy - 8);
+                g.closePath();
+                g.strokePath();
+                // Cracks (same brass, thicker for visibility)
+                g.lineStyle(3, accent, 0.95);
+                g.beginPath();
+                g.moveTo(ix - 3, iy - 14);
+                g.lineTo(ix + 3, iy + 14);
+                g.strokePath();
+                g.lineStyle(2, color, 0.7);
+                g.beginPath();
+                g.moveTo(ix - 8, iy - 4);
+                g.lineTo(ix + 4, iy + 10);
+                g.strokePath();
                 break;
             }
             case 'phone_evil': {
-                g.fillStyle(0x330000, 1);
+                // Evil phone / scam call
+                g.fillStyle(0x1E0E05, 1);
                 g.fillRoundedRect(ix - 8, iy - 14, 16, 26, 3);
-                g.lineStyle(2, ic, 0.9);
+                g.lineStyle(2, color, 0.9);
                 g.strokeRoundedRect(ix - 8, iy - 14, 16, 26, 3);
-                g.fillStyle(0xff0000, 1);
+                g.fillStyle(color, 1);
                 g.fillTriangle(ix, iy - 6, ix - 5, iy + 4, ix + 5, iy + 4);
-                g.fillStyle(0xffffff, 1); g.fillRect(ix - 1, iy - 4, 2, 5); g.fillRect(ix-1, iy+5, 2, 2);
+                g.fillStyle(0x1E0E05, 1);
+                g.fillRect(ix - 1, iy - 4, 2, 5);
+                g.fillRect(ix - 1, iy + 5, 2, 2);
                 break;
             }
             case 'wifi_evil': {
+                // Evil twin / rogue AP
                 [14, 10, 6].forEach((r, i) => {
-                    g.lineStyle(2, i === 0 ? 0xff0000 : ic, ia - i * 0.1);
+                    g.lineStyle(2, color, ia - i * 0.1);
                     g.beginPath();
                     g.arc(ix, iy + 2, r, Phaser.Math.DegToRad(210), Phaser.Math.DegToRad(330));
                     g.strokePath();
                 });
-                g.fillStyle(0xff0000, 1); g.fillCircle(ix, iy + 2, 3);
+                // Centre dot (same brass — not red)
+                g.fillStyle(color, 1);
+                g.fillCircle(ix, iy + 2, 3);
                 break;
             }
             case 'clown': {
-                // clown face
-                g.fillStyle(0xffffff, 0.9); g.fillCircle(ix, iy, 14);
-                g.fillStyle(0xff0000, 1); g.fillCircle(ix, iy + 4, 4);
-                g.fillStyle(0xff4444, 1); g.fillCircle(ix - 8, iy + 1, 3); g.fillCircle(ix + 8, iy + 1, 3);
-                g.fillStyle(0x000000, 1); g.fillCircle(ix - 5, iy - 4, 2); g.fillCircle(ix + 5, iy - 4, 2);
-                // evil grin
-                g.lineStyle(2, 0x000000, 1);
-                g.beginPath(); g.arc(ix, iy + 3, 7, Phaser.Math.DegToRad(15), Phaser.Math.DegToRad(165)); g.strokePath();
-                // hat
-                g.fillStyle(0x220000, 1); g.fillRect(ix - 12, iy - 18, 24, 5); g.fillRect(ix - 7, iy - 28, 14, 12);
+                // Threat actor clown face (brass/wood palette)
+                g.fillStyle(0xD4A96A, 0.9);    // warm tan face
+                g.fillCircle(ix, iy, 14);
+                g.fillStyle(color, 1);           // brass nose
+                g.fillCircle(ix, iy + 4, 4);
+                g.fillStyle(0x8B5A30, 1);        // dark cheeks
+                g.fillCircle(ix - 8, iy + 1, 3);
+                g.fillCircle(ix + 8, iy + 1, 3);
+                g.fillStyle(0x1E0E05, 1);        // dark eyes
+                g.fillCircle(ix - 5, iy - 4, 2);
+                g.fillCircle(ix + 5, iy - 4, 2);
+                // Evil grin
+                g.lineStyle(2, 0x1E0E05, 1);
+                g.beginPath();
+                g.arc(ix, iy + 3, 7, Phaser.Math.DegToRad(15), Phaser.Math.DegToRad(165));
+                g.strokePath();
+                // Hat (dark wood colour)
+                g.fillStyle(0x1E0E05, 1);
+                g.fillRect(ix - 12, iy - 18, 24, 5);
+                g.fillRect(ix - 7,  iy - 28, 14, 12);
                 break;
             }
-            // GOOD target icons
+
+            // ── GOOD ICONS ─────────────────────────────────────────────────────
             case 'shield_ok': {
-                g.beginPath(); g.moveTo(ix, iy - 14); g.lineTo(ix + 12, iy - 8);
-                g.lineTo(ix + 12, iy + 4); g.lineTo(ix, iy + 14); g.lineTo(ix - 12, iy + 4);
-                g.lineTo(ix - 12, iy - 8); g.closePath();
-                g.fillStyle(ic, 0.2); g.fillPath();
-                g.lineStyle(2, ic, 1); g.strokePath();
-                g.lineStyle(3, 0x00ff88, 1);
-                g.beginPath(); g.moveTo(ix - 6, iy); g.lineTo(ix - 1, iy + 6); g.lineTo(ix + 7, iy - 6); g.strokePath();
+                // Intact shield with checkmark
+                g.beginPath();
+                g.moveTo(ix,      iy - 14);
+                g.lineTo(ix + 12, iy - 8);
+                g.lineTo(ix + 12, iy + 4);
+                g.lineTo(ix,      iy + 14);
+                g.lineTo(ix - 12, iy + 4);
+                g.lineTo(ix - 12, iy - 8);
+                g.closePath();
+                g.fillStyle(color, 0.15);
+                g.fillPath();
+                g.lineStyle(2, color, 1);
+                g.strokePath();
+                // Checkmark (brass — same colour, shape is the cue)
+                g.lineStyle(3, accent, 1);
+                g.beginPath();
+                g.moveTo(ix - 6, iy);
+                g.lineTo(ix - 1, iy + 6);
+                g.lineTo(ix + 7, iy - 6);
+                g.strokePath();
                 break;
             }
             case 'vault': {
-                g.fillStyle(0x003344, 1); g.fillRoundedRect(ix - 14, iy - 12, 28, 22, 4);
-                g.lineStyle(2, ic, 1); g.strokeRoundedRect(ix - 14, iy - 12, 28, 22, 4);
-                g.lineStyle(1, ic, 0.5);
+                // Password vault / safe
+                g.fillStyle(0x1E0E05, 1);
+                g.fillRoundedRect(ix - 14, iy - 12, 28, 22, 4);
+                g.lineStyle(2, color, 1);
+                g.strokeRoundedRect(ix - 14, iy - 12, 28, 22, 4);
+                g.lineStyle(1, color, 0.5);
                 [0, 1, 2, 3].forEach(i => g.strokeCircle(ix, iy, 3 + i * 3));
-                g.fillStyle(ic, 1); g.fillCircle(ix, iy, 3);
-                g.fillStyle(0x00ccff, 1); g.fillRect(ix + 3, iy - 3, 10, 3);
+                g.fillStyle(color, 1);
+                g.fillCircle(ix, iy, 3);
+                g.fillStyle(accent, 1);
+                g.fillRect(ix + 3, iy - 3, 10, 3);
                 break;
             }
             case 'lock_ok': {
-                g.fillStyle(0x003300, 1); g.fillRect(ix - 10, iy - 3, 20, 14);
-                g.lineStyle(2, ic, 1); g.strokeRect(ix - 10, iy - 3, 20, 14);
-                g.lineStyle(2, ic, 1); g.arc(ix, iy - 3, 8, Phaser.Math.DegToRad(180), Phaser.Math.DegToRad(0)); g.strokePath();
-                g.fillStyle(ic, 1); g.fillCircle(ix, iy + 4, 3);
+                // Locked padlock (intact)
+                g.fillStyle(0x1E0E05, 1);
+                g.fillRect(ix - 10, iy - 3, 20, 14);
+                g.lineStyle(2, color, 1);
+                g.strokeRect(ix - 10, iy - 3, 20, 14);
+                g.arc(ix, iy - 3, 8, Phaser.Math.DegToRad(180), Phaser.Math.DegToRad(0));
+                g.strokePath();
+                g.fillStyle(color, 1);
+                g.fillCircle(ix, iy + 4, 3);
                 g.fillRect(ix - 1, iy + 4, 2, 5);
-                g.fillStyle(0x00ff88, 1);
-                g.fillTriangle(ix - 10, iy + 20, ix - 4, iy + 28, ix + 6, iy + 14);
+                // Checkmark below (brass)
+                g.lineStyle(3, accent, 1);
+                g.beginPath();
+                g.moveTo(ix - 5, iy + 18);
+                g.lineTo(ix,     iy + 24);
+                g.lineTo(ix + 7, iy + 14);
+                g.strokePath();
                 break;
             }
             case 'flag': {
-                g.fillStyle(0x004400, 1); g.fillRect(ix - 1, iy - 14, 2, 26);
-                g.lineStyle(2, ic, 1); g.strokeRect(ix - 1, iy - 14, 2, 26);
-                g.fillStyle(ic, 0.9);
+                // Report flag
+                g.fillStyle(0x1E0E05, 1);
+                g.fillRect(ix - 1, iy - 14, 2, 26);
+                g.lineStyle(2, color, 1);
+                g.strokeRect(ix - 1, iy - 14, 2, 26);
+                g.fillStyle(color, 0.9);
                 g.fillTriangle(ix + 1, iy - 14, ix + 14, iy - 7, ix + 1, iy);
                 break;
             }
             case 'update_shield': {
-                g.beginPath(); g.moveTo(ix, iy - 14); g.lineTo(ix + 12, iy - 8);
-                g.lineTo(ix + 12, iy + 4); g.lineTo(ix, iy + 14); g.lineTo(ix - 12, iy + 4);
-                g.lineTo(ix - 12, iy - 8); g.closePath();
-                g.lineStyle(2, ic, 1); g.strokePath();
-                // circular arrow
-                g.lineStyle(2, ic, 0.9);
-                g.beginPath(); g.arc(ix, iy, 7, Phaser.Math.DegToRad(30), Phaser.Math.DegToRad(300)); g.strokePath();
-                g.fillStyle(ic, 1);
+                // Patched / updated shield
+                g.beginPath();
+                g.moveTo(ix,      iy - 14);
+                g.lineTo(ix + 12, iy - 8);
+                g.lineTo(ix + 12, iy + 4);
+                g.lineTo(ix,      iy + 14);
+                g.lineTo(ix - 12, iy + 4);
+                g.lineTo(ix - 12, iy - 8);
+                g.closePath();
+                g.lineStyle(2, color, 1);
+                g.strokePath();
+                // Circular update arrow
+                g.lineStyle(2, color, 0.9);
+                g.beginPath();
+                g.arc(ix, iy, 7, Phaser.Math.DegToRad(30), Phaser.Math.DegToRad(300));
+                g.strokePath();
+                g.fillStyle(color, 1);
                 g.fillTriangle(ix + 6, iy - 4, ix + 2, iy - 9, ix + 10, iy - 8);
                 break;
             }
             case 'zero_trust': {
-                g.lineStyle(2, ic, 0.8);
+                // Zero-trust policy (access control — deny by default)
+                g.lineStyle(2, color, 0.8);
                 g.strokeRect(ix - 10, iy - 10, 20, 20);
-                g.fillStyle(0xff0000, 1); g.fillCircle(ix, iy, 6);
-                g.lineStyle(2, 0xffffff, 1);
-                g.beginPath(); g.moveTo(ix - 4, iy - 4); g.lineTo(ix + 4, iy + 4); g.strokePath();
-                g.beginPath(); g.moveTo(ix + 4, iy - 4); g.lineTo(ix - 4, iy + 4); g.strokePath();
+                // X cross (brass — same colour as shield_ok checkmark; shape is the distinction)
+                g.fillStyle(color, 0.6);
+                g.fillCircle(ix, iy, 6);
+                g.lineStyle(2, 0x1E0E05, 1);
+                g.beginPath();
+                g.moveTo(ix - 4, iy - 4); g.lineTo(ix + 4, iy + 4);
+                g.strokePath();
+                g.beginPath();
+                g.moveTo(ix + 4, iy - 4); g.lineTo(ix - 4, iy + 4);
+                g.strokePath();
                 break;
             }
             case 'team': {
+                // Security team / SOC
                 [{ x: -8, y: -2 }, { x: 0, y: -6 }, { x: 8, y: -2 }].forEach(p => {
-                    g.fillStyle(ic, 0.8); g.fillCircle(ix + p.x, iy + p.y, 5);
+                    g.fillStyle(color, 0.8);
+                    g.fillCircle(ix + p.x, iy + p.y, 5);
                 });
-                g.lineStyle(1, ic, 0.5);
+                g.lineStyle(1, color, 0.5);
                 g.strokeCircle(ix - 8, iy - 2, 5);
                 break;
             }
             default: {
-                // generic diamond
-                g.fillStyle(ic, 0.8);
+                // Generic diamond
+                g.fillStyle(color, 0.8);
                 g.fillTriangle(ix, iy - 12, ix + 10, iy, ix, iy + 12);
                 g.fillTriangle(ix, iy - 12, ix - 10, iy, ix, iy + 12);
                 break;
@@ -345,7 +465,7 @@ export class Target extends Phaser.GameObjects.Container {
         if (this.maxHealth <= 1) return;
         const W = this.W;
         this._hpBg = this.scene.add.graphics();
-        this._hpBg.fillStyle(0x333333, 1);
+        this._hpBg.fillStyle(0x3D2000, 1);
         this._hpBg.fillRect(-W/2 + 4, this.H/2 - 8, W - 8, 5);
         this.add(this._hpBg);
         this._hpBar = this.scene.add.graphics();
@@ -359,7 +479,8 @@ export class Target extends Phaser.GameObjects.Container {
         const pct = this.health / this.maxHealth;
         const barW = (W - 8) * pct;
         this._hpBar.clear();
-        this._hpBar.fillStyle(pct > 0.5 ? 0x00ff66 : pct > 0.25 ? 0xffff00 : 0xff2222, 1);
+        // Neutral brass bar — not colour-coded good/bad
+        this._hpBar.fillStyle(pct > 0.5 ? 0xC8941A : pct > 0.25 ? 0xE8C050 : 0x8B5A10, 1);
         this._hpBar.fillRect(-W/2 + 4, this.H/2 - 8, barW, 5);
     }
 
@@ -393,20 +514,19 @@ export class Target extends Phaser.GameObjects.Container {
     }
 
     update(time, delta) {
-        if (!this.alive) return;
+        if (!this.alive || this._destroying) return;
         const dt = delta / 1000;
         this._time += dt;
         this._hitFlash = Math.max(0, this._hitFlash - dt * 4);
 
-        // Apply tint for hit flash
-        const flashAlpha = this._hitFlash;
-        if (flashAlpha > 0) {
+        // Hit flash tint (brief white flash on damage)
+        if (this._hitFlash > 0) {
             this.list.forEach(c => { if (c.setTint) c.setTint(0xffffff); });
         } else {
             this.list.forEach(c => { if (c.clearTint) c.clearTint(); });
         }
 
-        // Movement logic
+        // Movement
         switch (this.movementType) {
             case 'slide':
             case 'flyby':
@@ -417,8 +537,7 @@ export class Target extends Phaser.GameObjects.Container {
                 if (this.y > 100 + Math.random() * 400) {
                     this.y += this._velY * dt;
                 } else {
-                    // hover briefly then pop down
-                    this._time > 2.5 && (this.y -= this._velY * dt * 0.5);
+                    if (this._time > 2.5) this.y -= this._velY * dt * 0.5;
                 }
                 break;
             case 'zigzag':
@@ -435,19 +554,19 @@ export class Target extends Phaser.GameObjects.Container {
                 break;
         }
 
-        // Bobbing rotation for flair
+        // Gentle sway
         this.rotation = Math.sin(this._time * 2 + this._baseX) * 0.05;
 
-        // Check OOB
+        // Out-of-bounds check
         if (this.x < -200 || this.x > 1480 || this.y > 820) {
             this.scene.events.emit('targetEscaped', this);
-            this.destroy();
+            this._safeDestroy();
         }
     }
 
     // ── HIT ───────────────────────────────────────────────────────────────────
-    hit(isHeadshot = false) {
-        if (!this.alive) return false;
+    hit() {
+        if (!this.alive || this._destroying) return false;
         this.health--;
         this._hitFlash = 1;
         this._updateHealthBar();
@@ -460,14 +579,26 @@ export class Target extends Phaser.GameObjects.Container {
     }
 
     _destroyAnim() {
+        if (this._destroying) return;
+        this._destroying = true;
+        this.disableInteractive();
+        if (!this.scene || !this.scene.tweens) {
+            this._safeDestroy();
+            return;
+        }
         this.scene.tweens.add({
             targets: this,
             scaleX: 1.4, scaleY: 0,
             alpha: 0,
             duration: 180,
             ease: 'Power2',
-            onComplete: () => this.destroy(),
+            onComplete: () => this._safeDestroy(),
         });
+    }
+
+    _safeDestroy() {
+        if (!this.active) return;
+        try { this.destroy(); } catch (e) {}
     }
 
     /** Returns true if the click y is in the top 25% (headshot zone) */

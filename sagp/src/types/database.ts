@@ -279,6 +279,26 @@ export interface Notification {
   created_at: string;
 }
 
+/**
+ * A single in-progress save per (user, game). Overwritten on every
+ * autosave; deleted when the player chooses "Start New Game".
+ * See supabase/migrations/20260703000000_game_saves.sql.
+ */
+export interface GameSave<TState = Record<string, unknown>> {
+  id: string;
+  user_id: string;
+  org_id: string | null;
+  game_id: string;
+  session_ref: string | null;
+  state: TState;
+  schema_version: number;
+  level: string | null;
+  score: number | null;
+  elapsed_seconds: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ComplianceReport {
   id: string;
   org_id: string;

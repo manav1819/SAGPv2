@@ -8,6 +8,16 @@ export class MenuScene extends Phaser.Scene {
         const W = 1280, H = 720;
         this._time = 0;
 
+        // Cursor must always be visible in menus — restore unconditionally.
+        document.body.style.cursor = 'default';
+        try { this.input.setDefaultCursor('default'); } catch (e) {}
+        // Release pointer lock if it was held from a previous gameplay session.
+        try {
+            if (this.input.mouse && this.input.mouse.locked) {
+                this.input.mouse.releasePointerLock();
+            }
+        } catch (e) {}
+
         // ── Background ────────────────────────────────────────────────────────
         this.add.image(W/2, H/2, 'background').setDisplaySize(W, H).setAlpha(0.4);
 
