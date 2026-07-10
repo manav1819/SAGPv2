@@ -1,8 +1,10 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { GAMES } from '@/config/games.config';
 
 interface BadgeCriteria {
   type: string;
   threshold?: number;
+  game_id?: string;
   [key: string]: any;
 }
 
@@ -45,7 +47,7 @@ export async function checkAndAwardBadges(
 
   const { data: sessions } = await client
     .from('game_sessions')
-    .select()
+    .select('id, module_id, passed, ended_at')
     .eq('user_id', userId)
     .eq('org_id', orgId);
 
@@ -56,6 +58,36 @@ export async function checkAndAwardBadges(
     .eq('user_id', userId);
 
   const existingBadgeIds = new Set(existingBadges?.map((b) => b.badge_id) || []);
+
+  // Build set of completed games from sessions
+  // Map module titles to game IDs using games config
+  const titleToId: Record<string, string> = {
+    'Phishing Simulator': 'phishing',
+    'Vishing Simulator': 'vishing',
+    'CyberGuard: Office Security': '3d-office',
+    'CyberForge': 'cyberforge',
+    'Cyber Carnival: Threat Hunt': 'carnival-shooter',
+  };
+
+  const completedGames = new Set<string>();
+
+  if (sessions && sessions.length > 0) {
+    // Get module titles
+    const moduleIds = [...new Set(sessions.map((s: any) => s.module_id).filter(Boolean))];
+    if (moduleIds.length > 0) {
+      const { data: modulesData } = await client
+        .from('modules')
+        .select('id, title')
+        .in('id', moduleIds);
+
+      for (const module of modulesData ?? []) {
+        const gameId = titleToId[module.title];
+        if (gameId) {
+          completedGames.add(gameId);
+        }
+      }
+    }
+  }
 
   for (const badge of badges || []) {
     // Skip if already earned
@@ -128,11 +160,24 @@ export async function checkAndAwardBadges(
       if (riskScore && riskScore.total_score <= (criteria.threshold || 30)) {
         shouldAward = true;
       }
+    } else if (criteria.type === 'game_completed') {
+      // Check if user has completed a specific game
+      if (criteria.game_id && completedGames.has(criteria.game_id)) {
+        shouldAward = true;
+      }
+    } else if (criteria.type === 'all_games_completed') {
+      // Check if user has completed all 5 games
+      const allGameIds = GAMES.map((g) => g.id);
+      const hasCompletedAll = allGameIds.every((gameId) => completedGames.has(gameId));
+      if (hasCompletedAll) {
+        shouldAward = true;
+      }
     }
 
     if (shouldAward) {
       await client.from('user_badges').insert({
         user_id: userId,
+        org_id: orgId,
         badge_id: badge.id,
         earned_at: new Date().toISOString(),
       });

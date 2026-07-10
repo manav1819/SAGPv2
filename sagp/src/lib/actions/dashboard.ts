@@ -13,11 +13,11 @@
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { computeCompanyScore, getScoreHistory } from '@/engines/analytics/company-score';
+import { GAMES } from '@/config/games.config';
 import type { RiskTier, SecurityPersona, UserRole } from '@/types/database';
 import type { RiskScoreExplanation } from '@/engines/analytics/risk-score';
 
 // ── Employee dashboard ──────────────────────────────────────────────────────
-
 export interface EmployeeDashboardData {
   riskScore: number | null;
   riskTier: RiskTier | null;
@@ -26,9 +26,18 @@ export interface EmployeeDashboardData {
   streakDays: number;
   totalPoints: number;
   modulesCompleted: number;
+  userBadges: Array<{
+    badgeId: string;
+    badgeName: string;
+    badgeIcon: string | null;
+    earnedAt: string;
+  }>;
   recentSessions: Array<{
     id: string;
     moduleTitle: string;
+    gameId: string | null;
+    gameTitle: string | null;
+    maxScore: number | null;
     score: number | null;
     passed: boolean | null;
     endedAt: string | null;
@@ -42,7 +51,25 @@ export async function getEmployeeDashboardData(
   try {
     const client = await createServiceRoleClient();
 
-    const [riskRes, personaRes, streakRes, completedRes, sessionsRes] = await Promise.all([
+    // Helper: Extract game ID from module title
+    const extractGameId = (moduleTitle: string): string | null => {
+      const titleToId: Record<string, string> = {
+        'Phishing Simulator': 'phishing',
+        'Vishing Simulator': 'vishing',
+        'CyberGuard: Office Security': '3d-office',
+        'CyberForge': 'cyberforge',
+        'Cyber Carnival: Threat Hunt': 'carnival-shooter',
+      };
+      return titleToId[moduleTitle] ?? null;
+    };
+
+    // Helper: Get game config by ID
+    const getGameConfig = (gameId: string | null) => {
+      if (!gameId) return null;
+      return GAMES.find((g) => g.id === gameId);
+    };
+
+    const [riskRes, personaRes, streakRes, completedRes, sessionsRes, badgesRes] = await Promise.all([
       // Latest risk score
       client
         .from('risk_scores')
@@ -88,6 +115,14 @@ export async function getEmployeeDashboardData(
         .eq('status', 'completed')
         .order('ended_at', { ascending: false })
         .limit(5),
+
+      // User badges with badge details
+      client
+        .from('user_badges')
+        .select('badges(id, name, icon_url), earned_at')
+        .eq('user_id', userId)
+        .order('earned_at', { ascending: false })
+        .limit(5),
     ]);
 
     // Resolve module titles for the recent sessions list.
@@ -116,13 +151,27 @@ export async function getEmployeeDashboardData(
       streakDays: streakRes.data?.streak_days ?? 0,
       totalPoints: streakRes.data?.total_points ?? 0,
       modulesCompleted: completedRes.count ?? 0,
-      recentSessions: sessionRows.map((s: any) => ({
-        id: s.id,
-        moduleTitle: moduleTitleMap.get(s.module_id) ?? 'Unknown module',
-        score: s.score,
-        passed: s.passed,
-        endedAt: s.ended_at,
+      userBadges: (badgesRes.data ?? []).map((b: any) => ({
+        badgeId: b.badges?.id ?? '',
+        badgeName: b.badges?.name ?? 'Unknown Badge',
+        badgeIcon: b.badges?.icon_url ?? null,
+        earnedAt: b.earned_at,
       })),
+      recentSessions: sessionRows.map((s: any) => {
+        const moduleTitle = moduleTitleMap.get(s.module_id) ?? 'Unknown module';
+        const gameId = extractGameId(moduleTitle);
+        const gameConfig = getGameConfig(gameId);
+        return {
+          id: s.id,
+          moduleTitle,
+          gameId,
+          gameTitle: gameConfig?.title ?? null,
+          maxScore: gameConfig?.maxScore ?? null,
+          score: s.score,
+          passed: s.passed,
+          endedAt: s.ended_at,
+        };
+      }),
     };
   } catch (err) {
     console.error('[getEmployeeDashboardData]', err);
