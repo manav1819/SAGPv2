@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { resolveUserRole, dashboardPathForRole } from '@/lib/auth/resolve-role';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -51,36 +52,22 @@ export async function updateSession(request: NextRequest) {
   ];
   if (authRoutes.some(r => path.startsWith(r))) {
     if (user) {
-      const { data: membership } = await supabase
-        .from('org_memberships')
-        .select('org_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // org_memberships is the source of truth for role once a user has
+      // joined an org; profiles.role only applies as a fallback for
+      // platform-level superadmins with no org membership. See
+      // resolveUserRole() for why (bugfix 2026-07-10: a stale
+      // profiles.role='superadmin' was overriding a real org_admin
+      // membership and misrouting the user).
+      const resolved = await resolveUserRole(supabase, user.id);
 
-      if (!membership) {
+      if (!resolved.hasMembership && resolved.role !== 'superadmin') {
         const url = request.nextUrl.clone();
         url.pathname = '/complete-profile';
         return NextResponse.redirect(url);
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      const role = profile?.role ?? 'employee';
-      let dest: string;
-      if (role === 'superadmin') {
-        dest = '/superadmin/dashboard';
-      } else if (role === 'org_admin') {
-        dest = '/admin/dashboard';
-      } else {
-        dest = '/dashboard';
-      }
-
       const url = request.nextUrl.clone();
-      url.pathname = dest;
+      url.pathname = dashboardPathForRole(resolved.role);
       return NextResponse.redirect(url);
     }
     return supabaseResponse;
@@ -104,28 +91,34 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Fetch role for protected-route checks
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
+  // Resolve role for protected-route checks. org_memberships wins over
+  // profiles.role — see resolveUserRole() for the rationale.
+  const resolved = await resolveUserRole(supabase, user.id);
+  const role = resolved.role;
 
-  const role = profile?.role ?? 'employee';
+  // Users with no org membership (and no platform-superadmin fallback) are
+  // locked out of every protected route until they redeem a join code.
+  // Without this, someone could sign up and hit /dashboard or /games
+  // directly, bypassing the "join an organisation" gate entirely.
+  if (!resolved.hasMembership && role !== 'superadmin') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/complete-profile';
+    return NextResponse.redirect(url);
+  }
 
   // Superadmin-only routes
   if (path.startsWith('/superadmin')) {
     if (role !== 'superadmin') {
       const url = request.nextUrl.clone();
-      url.pathname = role === 'org_admin' ? '/admin/dashboard' : '/dashboard';
+      url.pathname = role === 'org_admin' || role === 'manager' ? '/admin/dashboard' : '/dashboard';
       return NextResponse.redirect(url);
     }
     return supabaseResponse;
   }
 
-  // Admin routes: org_admin and superadmin only
+  // Admin routes: org_admin, manager, and superadmin only
   if (path.startsWith('/admin')) {
-    if (!['superadmin', 'org_admin'].includes(role)) {
+    if (!['superadmin', 'org_admin', 'manager'].includes(role)) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return NextResponse.redirect(url);
@@ -134,7 +127,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Employee routes: redirect admins to their panel if they land here.
-  // /games added alongside existing employee route guards.
   const employeeRoutes = [
     '/dashboard',
     '/games',
@@ -149,7 +141,7 @@ export async function updateSession(request: NextRequest) {
       url.pathname = '/superadmin/dashboard';
       return NextResponse.redirect(url);
     }
-    if (role === 'org_admin') {
+    if (role === 'org_admin' || role === 'manager') {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/dashboard';
       return NextResponse.redirect(url);

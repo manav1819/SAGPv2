@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { joinOrganizationByCode } from '@/lib/auth/actions';
 
 /**
  * /complete-profile
@@ -26,58 +26,19 @@ export default function CompleteProfilePage() {
     setIsPending(true);
 
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      // Validated + written server-side (see joinOrganizationByCode) — the
+      // client never queries organizations or writes org_memberships
+      // directly, since RLS only grants members access and a brand-new
+      // user isn't one yet.
+      const result = await joinOrganizationByCode(joinCode, firstName, lastName);
 
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      // Look up the org by join code
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
-        .select('id')
-        .eq('join_code', joinCode.trim().toUpperCase())
-        .maybeSingle();
-
-      if (orgError || !org) {
-        setError('Invalid join code. Please check with your organisation admin.');
-        return;
-      }
-
-      // Upsert profile with display name
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          email: user.email ?? '',
-          first_name: firstName,
-          last_name: lastName,
-          role: 'employee',
-          is_active: true,
-        });
-
-      if (profileError) {
-        setError(profileError.message);
-        return;
-      }
-
-      // Create membership
-      const { error: membershipError } = await supabase
-        .from('org_memberships')
-        .insert({
-          user_id: user.id,
-          org_id: org.id,
-          org_role: 'employee',
-        });
-
-      if (membershipError) {
-        setError(membershipError.message);
+      if (!result.success) {
+        setError(result.error ?? 'Something went wrong. Please try again.');
         return;
       }
 
       router.push('/dashboard');
+      router.refresh();
     } finally {
       setIsPending(false);
     }

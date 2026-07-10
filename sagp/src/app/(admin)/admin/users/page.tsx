@@ -1,31 +1,33 @@
-import { Users, UserPlus, Search } from 'lucide-react';
+/**
+ * Admin Users — Server Component
+ *
+ * Lists every employee in the admin's own organization along with their
+ * game participation, risk score, and persona. Scoped server-side to the
+ * caller's org_id (see getOrgEmployees in @/lib/actions/dashboard) — never
+ * trust a client-supplied org id here.
+ */
 
-export default function AdminUsersPage() {
-  return (
-    <div className="sagp-content-area p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="sagp-heading-1 flex items-center gap-3">
-          <Users className="h-7 w-7 sagp-text-primary" />
-          Users
-        </h1>
-        <button className="sagp-btn sagp-btn-primary flex items-center gap-2">
-          <UserPlus className="h-4 w-4" />
-          Invite User
-        </button>
-      </div>
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { getOrgEmployees } from '@/lib/actions/dashboard';
+import { AdminUsersClient } from './AdminUsersClient';
+import { redirect } from 'next/navigation';
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sagp-text-muted" />
-        <input type="search" placeholder="Search users…" className="sagp-input pl-9 w-full max-w-sm" />
-      </div>
+export default async function AdminUsersPage() {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
-      <div className="sagp-card flex flex-col items-center justify-center gap-3 py-20 text-center">
-        <Users className="h-12 w-12 sagp-text-muted opacity-30" />
-        <p className="sagp-heading-3 sagp-text-muted">No users yet</p>
-        <p className="sagp-text-muted text-sm max-w-xs">
-          Invite employees to join your organisation using the join code in Settings.
-        </p>
-      </div>
-    </div>
-  );
+  const service = await createServiceRoleClient();
+  const { data: membership } = await service
+    .from('org_memberships')
+    .select('org_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!membership?.org_id) redirect('/login');
+
+  const orgId = membership.org_id as string;
+  const employees = await getOrgEmployees(orgId);
+
+  return <AdminUsersClient employees={employees} />;
 }
