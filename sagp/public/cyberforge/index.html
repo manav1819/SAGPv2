@@ -19,6 +19,11 @@
   #progress-bar-bg{height:4px;background:rgba(0,245,255,0.12);border-radius:99px;overflow:hidden;}
   #progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:99px;transition:width 0.4s ease;box-shadow:0 0 8px rgba(0,245,255,0.4);}
   #xp-display{font-size:11px;color:var(--green);font-family:'IBM Plex Mono',monospace;margin-top:6px;text-shadow:0 0 8px rgba(57,255,20,0.4);}
+  .mode-badge{display:inline-block;font-size:9px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;padding:3px 8px;border-radius:99px;margin-top:8px;text-transform:uppercase;}
+  .mode-basic{background:rgba(0,245,255,0.12);color:var(--cyan);border:1px solid rgba(0,245,255,0.3);}
+  .mode-challenge{background:rgba(255,59,129,0.12);color:var(--danger);border:1px solid rgba(255,59,129,0.35);}
+  .mistake-label{font-size:10px;color:var(--danger);font-family:'IBM Plex Mono',monospace;margin-top:6px;}
+  .mistake-label.hidden{display:none;}
   #search-wrap{padding:10px 12px;border-bottom:1px solid var(--border);}
   #search-input{width:100%;background:rgba(0,245,255,0.06);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-size:12px;font-family:'IBM Plex Mono',monospace;outline:none;transition:border-color 0.2s;}
   #search-input:focus{border-color:var(--cyan);}
@@ -85,12 +90,14 @@
     <div id="sidebar-header">
       <h1>⚡ CYBERFORGE</h1>
       <div class="subtitle">Cybersecurity Element Synthesis</div>
+      <div id="mode-badge" class="mode-badge mode-basic">BASIC MODE</div>
       <div id="progress-bar-wrap">
         <div id="progress-label">
           <span><span id="discovered-count">4</span> / <span id="total-count">70</span> elements</span>
           <span id="xp-display">XP: 0</span>
         </div>
         <div id="progress-bar-bg"><div id="progress-bar-fill" style="width:5%"></div></div>
+        <div id="mistake-label" class="mistake-label hidden">Mistakes: <span id="mistake-count">0</span> · <span id="mistake-penalty-total">-0</span> XP lost</div>
       </div>
     </div>
     <div id="search-wrap">
@@ -317,11 +324,20 @@ const RECIPES={
 const XP_TABLE={0:0,1:10,2:25,3:50,4:75,5:100,6:150};
 const TOTAL=Object.keys(ELEMENTS).length;
 
+// ── Difficulty mode ───────────────────────────────────────────────────────────
+// Read once at load time from the iframe's own URL (?mode=challenge), set by
+// the SAGP player page before the iframe mounts. Defaults to 'basic' so any
+// link/embed that omits the param behaves exactly as it always has.
+const MODE=(new URLSearchParams(window.location.search).get('mode')==='challenge')?'challenge':'basic';
+const MISTAKE_PENALTY=5; // XP deducted per wrong combination attempt, Challenge mode only
+
 const state={
   discovered:new Set(['device','user','network','credential']),
   xp:0,
   wsCards:[],
   nextCardId:0,
+  mistakes:0,
+  penaltyTotal:0,
 };
 
 const $=id=>document.getElementById(id);
@@ -352,6 +368,10 @@ function updateProgress(){
   $('total-count').textContent=TOTAL;
   $('progress-bar-fill').style.width=`${Math.round(count/TOTAL*100)}%`;
   $('xp-display').textContent=`XP: ${state.xp}`;
+  if(MODE==='challenge'){
+    $('mistake-count').textContent=state.mistakes;
+    $('mistake-penalty-total').textContent=`-${state.penaltyTotal}`;
+  }
   // Auto-fire completion when all elements discovered
   if(count>=TOTAL)fireGameComplete();
 }
@@ -477,10 +497,19 @@ function attemptCombine(cardA,cardB){
   const resultId=RECIPES[key];
   if(!resultId){
     const same=cardA.elemId===cardB.elemId;
-    showWarning(same
+    let msg=same
       ?`<strong>${ELEMENTS[cardA.elemId].name}</strong> can't combine with itself. Try pairing it with something different.`
-      :`<strong>${ELEMENTS[cardA.elemId].name}</strong> + <strong>${ELEMENTS[cardB.elemId].name}</strong> don't produce a known reaction. Think about how these cybersecurity concepts relate in the real world.`
-    );
+      :`<strong>${ELEMENTS[cardA.elemId].name}</strong> + <strong>${ELEMENTS[cardB.elemId].name}</strong> don't produce a known reaction. Think about how these cybersecurity concepts relate in the real world.`;
+    if(MODE==='challenge'){
+      const penalty=Math.min(MISTAKE_PENALTY,state.xp);
+      state.mistakes+=1;
+      state.penaltyTotal+=penalty;
+      state.xp=Math.max(0,state.xp-MISTAKE_PENALTY);
+      updateProgress();
+      pushSave();
+      msg+=` <span style="color:var(--danger)">−${MISTAKE_PENALTY} XP penalty (Challenge Mode).</span>`;
+    }
+    showWarning(msg);
     flashScreen('red');
     return;
   }
@@ -500,6 +529,7 @@ function attemptCombine(cardA,cardB){
     spawnCard(resultId,mx,my);
     showDiscovery(resultId,xp);
     postXP(xp,resultId);
+    pushSave();
   }else{
     flashScreen('yellow');
     spawnCard(resultId,mx,my);
@@ -548,9 +578,52 @@ function flashScreen(colour){
 
 function postXP(xp,elemId){
   try{
-    window.parent.postMessage({type:'SAGP_SCORE',game:'cyberforge',xp,element:elemId,totalXP:state.xp,totalDiscovered:state.discovered.size},'*');
+    window.parent.postMessage({type:'SAGP_SCORE',game:'cyberforge',xp,element:elemId,totalXP:state.xp,totalDiscovered:state.discovered.size,mode:MODE,mistakes:state.mistakes},'*');
   }catch(e){}
 }
+
+// ── Save / resume bridge ──────────────────────────────────────────────────────
+// So progress (discovered elements, XP, mistakes) survives the player
+// closing the tab, refreshing, or logging out mid-session — see
+// IframeGame.tsx / useGameSave.ts for the host side of this protocol.
+// Workspace card positions are intentionally NOT persisted; only the
+// permanent inventory + score state is, which is all that actually matters
+// for "did I lose my progress".
+function pushSave(){
+  try{
+    window.parent.postMessage({
+      type:'SAGP_SAVE_STATE',
+      payload:{
+        discovered:[...state.discovered],
+        xp:state.xp,
+        mistakes:state.mistakes,
+        penaltyTotal:state.penaltyTotal,
+        mode:MODE,
+      },
+    },window.location.origin||'*');
+  }catch(e){}
+}
+
+function applyRestoredState(saved){
+  if(!saved||typeof saved!=='object')return;
+  if(Array.isArray(saved.discovered)){
+    const restored=saved.discovered.filter(id=>ELEMENTS[id]);
+    if(restored.length)state.discovered=new Set(restored);
+  }
+  if(typeof saved.xp==='number')state.xp=saved.xp;
+  if(typeof saved.mistakes==='number')state.mistakes=saved.mistakes;
+  if(typeof saved.penaltyTotal==='number')state.penaltyTotal=saved.penaltyTotal;
+  updateProgress();
+  renderInventory($('search-input').value);
+}
+
+window.addEventListener('message',e=>{
+  const sameOrigin=e.origin===window.location.origin||e.origin==='null'||e.origin==='';
+  if(!sameOrigin)return;
+  if(e.data&&e.data.type==='SAGP_RESTORE_STATE'){
+    applyRestoredState(e.data.payload);
+  }
+});
 
 // ── SAGP Integration Bridge ───────────────────────────────────────────────────
 // Fire GAME_COMPLETE so the parent IframeGame host can persist the session
@@ -571,6 +644,9 @@ function fireGameComplete(){
       totalXP:state.xp,
       totalDiscovered,
       totalElements:TOTAL,
+      mode:MODE,
+      mistakes:state.mistakes,
+      xpLostToMistakes:state.penaltyTotal,
     },window.location.origin||'*');
   }catch(e){}
 }
@@ -581,6 +657,13 @@ document.addEventListener('keydown',e=>{
 });
 
 function init(){
+  if(MODE==='challenge'){
+    const badge=$('mode-badge');
+    badge.textContent='CHALLENGE MODE';
+    badge.classList.remove('mode-basic');
+    badge.classList.add('mode-challenge');
+    $('mistake-label').classList.remove('hidden');
+  }
   updateProgress();
   renderInventory();
   const ws=$('workspace');
@@ -595,6 +678,14 @@ function init(){
 window.addEventListener('load',()=>{
   init();
   $('btn-save-exit').addEventListener('click',fireGameComplete);
+  // Tell the host we're ready to receive SAGP_RESTORE_STATE. If the player
+  // chose "Continue" on the resume prompt, applyRestoredState() will patch
+  // the just-initialised default state a moment later (see the 'message'
+  // listener above) — if they chose "Start New" or have no save, this is a
+  // harmless no-op and init()'s defaults stand.
+  try{
+    window.parent.postMessage({type:'SAGP_GAME_READY'},window.location.origin||'*');
+  }catch(e){}
 });
 </script>
 </body>

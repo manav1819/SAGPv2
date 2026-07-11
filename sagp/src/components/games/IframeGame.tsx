@@ -7,6 +7,7 @@ import type { GameConfig } from '@/config/games.config';
 import { PERSONA_LABELS, RISK_TIER_COLORS } from '@/lib/hooks/useLiveData';
 import { useGameSave } from '@/lib/hooks/useGameSave';
 import { ResumeGameDialog } from '@/components/game/ResumeGameDialog';
+import { registerActiveGameSave, unregisterActiveGameSave } from '@/lib/game-save/activeGameSaveRegistry';
 
 /** How many seconds to wait on the success overlay before auto-redirecting */
 const AUTO_REDIRECT_SECONDS = 10;
@@ -15,6 +16,13 @@ interface IframeGameProps {
   game: GameConfig;
   playerName: string;
   sessionRef: string;
+  /**
+   * Optional difficulty mode ('basic' | 'challenge'), forwarded to the game
+   * iframe as a `mode` query param. Only meaningful for games that read it
+   * from their own URL (currently: cyberforge). Omitted entirely for games
+   * that don't support modes yet, so their iframe URL is unaffected.
+   */
+  mode?: string;
 }
 
 interface GameResult {
@@ -52,7 +60,7 @@ type IframeSaveState = Record<string, unknown>;
  * Games that never post these messages simply never accumulate a save —
  * this path is entirely dormant for them.
  */
-export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
+export function IframeGame({ game, playerName, sessionRef, mode }: IframeGameProps) {
   const router = useRouter();
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
@@ -90,12 +98,23 @@ export function IframeGame({ game, playerName, sessionRef }: IframeGameProps) {
     setMounted(true);
   }, []);
 
+  // Let anything outside this component (currently: the Logout button)
+  // force a save of whatever this game last reported before tearing this
+  // page down via a client-side navigation. See activeGameSaveRegistry.ts
+  // for why this is needed on top of the beforeunload/interval autosave.
+  useEffect(() => {
+    const flush = () => saveNow();
+    registerActiveGameSave(flush);
+    return () => unregisterActiveGameSave(flush);
+  }, [saveNow]);
+
   const gameUrl = useMemo(() => {
     if (!mounted || !game.iframeUrl) return '';
-    return `${game.iframeUrl}?playerName=${encodeURIComponent(playerName)}&sessionRef=${encodeURIComponent(
+    const base = `${game.iframeUrl}?playerName=${encodeURIComponent(playerName)}&sessionRef=${encodeURIComponent(
       sessionRef
     )}`;
-  }, [game.iframeUrl, mounted, playerName, sessionRef]);
+    return mode ? `${base}&mode=${encodeURIComponent(mode)}` : base;
+  }, [game.iframeUrl, mounted, playerName, sessionRef, mode]);
 
   // Auto-redirect countdown after success
   useEffect(() => {
