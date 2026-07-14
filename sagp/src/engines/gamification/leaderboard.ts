@@ -7,13 +7,24 @@ export async function updateLeaderboard(
 ): Promise<void> {
   const client = await createServiceRoleClient();
 
-  // Get user's department
-  const { data: membership } = await client
-    .from('org_memberships')
-    .select('department')
-    .eq('user_id', userId)
-    .eq('org_id', orgId)
-    .single();
+  const [{ data: membership }, { data: profile }] = await Promise.all([
+    client
+      .from('org_memberships')
+      .select('department')
+      .eq('user_id', userId)
+      .eq('org_id', orgId)
+      .single(),
+    client
+      .from('profiles')
+      .select('display_name, first_name, last_name')
+      .eq('id', userId)
+      .single(),
+  ]);
+
+  const displayName =
+    profile?.display_name?.trim() ||
+    [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim() ||
+    'Player';
 
   // Calculate total points from all completed sessions
   const { data: sessions } = await client
@@ -44,74 +55,75 @@ export async function updateLeaderboard(
     .eq('org_id', orgId)
     .single();
 
-  // Upsert org-scope leaderboard row
-  const { data: orgLeaderboard } = await client
+  const commonEntry = {
+    user_id: userId,
+    org_id: orgId,
+    display_name: displayName,
+    total_points: totalPoints,
+    badges_earned: badges?.length || 0,
+    streak_days: streak?.current_streak || 0,
+    modules_completed: progress?.length || 0,
+    updated_at: new Date().toISOString(),
+  };
+
+  const rows = [
+    { ...commonEntry, department: null, scope: 'org' as const },
+    ...(membership?.department
+      ? [{ ...commonEntry, department: membership.department, scope: 'department' as const }]
+      : []),
+  ];
+
+  const { error: upsertError } = await client
     .from('leaderboard')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('org_id', orgId)
-    .eq('scope', 'org')
-    .single();
+    .upsert(rows, { onConflict: 'user_id,org_id,scope,department' });
 
-  if (orgLeaderboard) {
-    await client
-      .from('leaderboard')
-      .update({
-        total_points: totalPoints,
-        badges_earned: badges?.length || 0,
-        streak_days: streak?.current_streak || 0,
-        modules_completed: progress?.length || 0,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', orgLeaderboard.id);
-  } else {
-    await client.from('leaderboard').insert({
-      user_id: userId,
-      org_id: orgId,
-      department: membership?.department || null,
-      scope: 'org',
-      total_points: totalPoints,
-      badges_earned: badges?.length || 0,
-      streak_days: streak?.current_streak || 0,
-      modules_completed: progress?.length || 0,
-      rank: 0,
-    });
-  }
+  if (upsertError) {
+    const isLegacySchema =
+      (upsertError.code === '42703' && upsertError.message.includes('display_name')) ||
+      upsertError.code === '42P10';
+    if (!isLegacySchema) throw upsertError;
 
-  // Upsert department-scope leaderboard row if user has a department
-  if (membership?.department) {
-    const { data: deptLeaderboard } = await client
-      .from('leaderboard')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('org_id', orgId)
-      .eq('scope', 'department')
-      .eq('department', membership.department)
-      .single();
-
-    if (deptLeaderboard) {
-      await client
+    // Compatibility path until the professional_badges_leaderboard_repair
+    // migration is deployed. It intentionally omits new-schema columns.
+    for (const row of rows) {
+      let existingQuery = client
         .from('leaderboard')
-        .update({
-          total_points: totalPoints,
-          badges_earned: badges?.length || 0,
-          streak_days: streak?.current_streak || 0,
-          modules_completed: progress?.length || 0,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', deptLeaderboard.id);
-    } else {
-      await client.from('leaderboard').insert({
-        user_id: userId,
-        org_id: orgId,
-        department: membership.department,
-        scope: 'department',
-        total_points: totalPoints,
-        badges_earned: badges?.length || 0,
-        streak_days: streak?.current_streak || 0,
-        modules_completed: progress?.length || 0,
-        rank: 0,
-      });
+        .select('id')
+        .eq('user_id', userId)
+        .eq('org_id', orgId)
+        .eq('scope', row.scope)
+        .limit(1);
+      if (row.scope === 'department') {
+        existingQuery = existingQuery.eq('department', row.department);
+      }
+      const { data: existingRows, error: lookupError } = await existingQuery;
+      if (lookupError) throw lookupError;
+
+      const legacyValues = {
+        total_points: row.total_points,
+        badges_earned: row.badges_earned,
+        streak_days: row.streak_days,
+        modules_completed: row.modules_completed,
+        updated_at: row.updated_at,
+      };
+      const existing = existingRows?.[0];
+      if (existing) {
+        const { error } = await client
+          .from('leaderboard')
+          .update(legacyValues)
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await client.from('leaderboard').insert({
+          ...legacyValues,
+          user_id: userId,
+          org_id: orgId,
+          department: row.department,
+          scope: row.scope,
+          rank: 0,
+        });
+        if (error) throw error;
+      }
     }
   }
 

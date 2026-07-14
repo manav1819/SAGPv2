@@ -181,6 +181,7 @@ CREATE TABLE badges (
   name TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   icon_url TEXT DEFAULT '',
+  icon_key TEXT NOT NULL DEFAULT 'badge-default',
   badge_type badge_type NOT NULL,
   criteria JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now()
@@ -206,13 +207,15 @@ CREATE TABLE leaderboard (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   org_id UUID NOT NULL REFERENCES organizations(id),
   department TEXT,
+  display_name TEXT NOT NULL DEFAULT 'Player',
   scope leaderboard_scope NOT NULL DEFAULT 'org',
   total_points INTEGER DEFAULT 0,
   badges_earned INTEGER DEFAULT 0,
   streak_days INTEGER DEFAULT 0,
   modules_completed INTEGER DEFAULT 0,
   rank INTEGER DEFAULT 0,
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE NULLS NOT DISTINCT (user_id, org_id, scope, department)
 );
 
 -- ============================================================
@@ -594,14 +597,14 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 -- ============================================================
 -- SEED DATA: Default badges
 -- ============================================================
-INSERT INTO badges (name, description, icon_url, badge_type, criteria) VALUES
-  ('First Steps', 'Complete your first training module', '🎯', 'achievement', '{"modules_completed": 1}'),
-  ('Phish Detector', 'Complete 10 phishing modules', '🐟', 'achievement', '{"category": "phishing", "count": 10}'),
-  ('Week Warrior', '7-day training streak', '🔥', 'streak', '{"streak_days": 7}'),
-  ('Month Master', '30-day training streak', '⚡', 'streak', '{"streak_days": 30}'),
-  ('Perfect Score', '100% on any hard module', '💯', 'score', '{"score": 100, "difficulty": "hard"}'),
-  ('Phishing Expert', 'Complete all phishing category modules', '🛡️', 'completion', '{"category": "phishing", "all": true}'),
-  ('Phish Hunter', 'Report 3 simulated phishing emails', '🎣', 'phish_hunter', '{"reports": 3}'),
-  ('Speed Demon', 'Complete 5 modules with speed bonus', '⚡', 'speed_run', '{"speed_bonus_count": 5}'),
-  ('Security Champion', 'Awarded for outstanding performance', '🏆', 'special', '{"manual": true}'),
-  ('Knowledge Seeker', 'Complete 25 modules across all categories', '📚', 'achievement', '{"modules_completed": 25}');
+INSERT INTO badges (name, description, icon_url, icon_key, badge_type, criteria) VALUES
+  ('First Steps', 'Complete your first training module', '', 'first-steps', 'achievement', '{"modules_completed": 1}'),
+  ('Phish Detector', 'Complete 10 phishing modules', '', 'badge-default', 'achievement', '{"category": "phishing", "count": 10}'),
+  ('Week Warrior', '7-day training streak', '', 'week-warrior', 'streak', '{"streak_days": 7}'),
+  ('Month Master', '30-day training streak', '', 'month-master', 'streak', '{"streak_days": 30}'),
+  ('Perfect Score', '100% on any hard module', '', 'perfect-score', 'score', '{"score": 100, "difficulty": "hard"}'),
+  ('Phishing Expert', 'Complete all phishing category modules', '', 'phishing-expert', 'completion', '{"category": "phishing", "all": true}'),
+  ('Phish Hunter', 'Report 3 simulated phishing emails', '', 'phish-hunter', 'phish_hunter', '{"reports": 3}'),
+  ('Speed Demon', 'Complete 5 modules with speed bonus', '', 'speed-demon', 'speed_run', '{"speed_bonus_count": 5}'),
+  ('Security Champion', 'Awarded for outstanding performance', '', 'security-champion', 'special', '{"manual": true}'),
+  ('Knowledge Seeker', 'Complete 25 modules across all categories', '', 'knowledge-seeker', 'achievement', '{"modules_completed": 25}');

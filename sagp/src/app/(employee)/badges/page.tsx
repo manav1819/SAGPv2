@@ -4,25 +4,34 @@ import { useEffect, useState } from 'react';
 import { Award, Lock } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
-
-interface UserBadge {
-  id: string;
-  name: string;
-  description: string;
-  icon_url: string | null;
-  badge_type: string;
-  earned_at: string;
-}
+import { GameBadgeIcon } from '@/components/badges/GameBadgeIcon';
+import { getBadgeAsset, getBadgeAssetByName } from '@/lib/badges/badge-assets';
 
 interface BadgeConfig {
   id: string;
   name: string;
   description: string;
-  icon_url: string | null;
+  icon_key: string | null;
   badge_type: string;
   earned: boolean;
   earned_at?: string;
 }
+
+interface BadgeRow {
+  id: string;
+  name: string;
+  description: string;
+  icon_key: string | null;
+  badge_type: string;
+}
+
+interface EarnedBadgeRow {
+  badges: BadgeRow | null;
+  earned_at: string;
+}
+
+const isMissingIconKeyError = (error: { code?: string; message?: string } | null) =>
+  error?.code === '42703' && error.message?.includes('icon_key');
 
 export default function BadgesPage() {
   const { profile } = useAuth();
@@ -39,35 +48,54 @@ export default function BadgesPage() {
         const supabase = createClient();
 
         // Fetch user's earned badges
-        const { data: userBadgesData, error: userBadgesError } = await supabase
+        let { data: userBadgesData, error: userBadgesError } = await supabase
           .from('user_badges')
-          .select('badges(id, name, description, icon_url, badge_type), earned_at')
+          .select('badges(id, name, description, icon_key, badge_type), earned_at')
           .eq('user_id', profile.id);
+
+        if (isMissingIconKeyError(userBadgesError)) {
+          const fallback = await supabase
+            .from('user_badges')
+            .select('badges(id, name, description, badge_type), earned_at')
+            .eq('user_id', profile.id);
+          userBadgesData = fallback.data as typeof userBadgesData;
+          userBadgesError = fallback.error;
+        }
 
         if (userBadgesError) throw userBadgesError;
 
         // Create a set of earned badge IDs
+        const earnedRows = (userBadgesData ?? []) as unknown as EarnedBadgeRow[];
         const earnedBadgeIds = new Set(
-          (userBadgesData ?? []).map((ub: any) => ub.badges?.id)
+          earnedRows.flatMap((row) => row.badges ? [row.badges.id] : [])
         );
-        const earnedMap = new Map(
-          (userBadgesData ?? []).map((ub: any) => [ub.badges?.id, ub.earned_at])
+        const earnedMap = new Map<string, string>(
+          earnedRows.flatMap((row) => row.badges ? [[row.badges.id, row.earned_at]] : [])
         );
 
         // Fetch all available badges
-        const { data: allBadgesData, error: allBadgesError } = await supabase
+        let { data: allBadgesData, error: allBadgesError } = await supabase
           .from('badges')
-          .select('id, name, description, icon_url, badge_type')
+          .select('id, name, description, icon_key, badge_type')
           .order('name', { ascending: true });
+
+        if (isMissingIconKeyError(allBadgesError)) {
+          const fallback = await supabase
+            .from('badges')
+            .select('id, name, description, badge_type')
+            .order('name', { ascending: true });
+          allBadgesData = fallback.data as typeof allBadgesData;
+          allBadgesError = fallback.error;
+        }
 
         if (allBadgesError) throw allBadgesError;
 
         // Combine data
-        const allBadges = (allBadgesData ?? []).map((badge: any) => ({
+        const allBadges = ((allBadgesData ?? []) as BadgeRow[]).map((badge) => ({
           id: badge.id,
           name: badge.name,
           description: badge.description,
-          icon_url: badge.icon_url,
+          icon_key: badge.icon_key ?? getBadgeAssetByName(badge.name).id,
           badge_type: badge.badge_type,
           earned: earnedBadgeIds.has(badge.id),
           earned_at: earnedMap.get(badge.id),
@@ -138,19 +166,17 @@ export default function BadgesPage() {
             {earnedBadges.map((badge) => (
               <div
                 key={badge.id}
-                className="sagp-card bg-gradient-to-br from-cyan-500/10 via-transparent to-purple-500/10 border border-cyan-500/40 p-4 flex flex-col items-center gap-3 hover:border-cyan-500/60 transition-colors"
+                tabIndex={0}
+                className="sagp-card group bg-gradient-to-br from-cyan-500/10 via-transparent to-purple-500/10 border border-cyan-500/40 p-4 flex flex-col items-center gap-3 hover:-translate-y-0.5 hover:border-cyan-500/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 transition motion-reduce:transform-none motion-reduce:transition-none"
               >
-                <div className="h-16 w-16 flex items-center justify-center text-3xl rounded-lg bg-cyan-500/20">
-                  {badge.icon_url ? (
-                    <img src={badge.icon_url} alt={badge.name} className="h-12 w-12" />
-                  ) : (
-                    <Award className="h-12 w-12 sagp-text-accent" />
-                  )}
-                </div>
+                <GameBadgeIcon iconKey={badge.icon_key} name={badge.name} size="lg" earned />
                 <div className="text-center">
                   <h3 className="sagp-heading-4 text-white">{badge.name}</h3>
                   <p className="sagp-text-muted text-sm mt-1">{badge.description}</p>
                 </div>
+                <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-cyan-200">
+                  {getBadgeAsset(badge.icon_key).rarity}
+                </span>
                 <div className="text-xs text-cyan-400 mt-2">
                   Earned {new Date(badge.earned_at!).toLocaleDateString()}
                 </div>
@@ -171,19 +197,17 @@ export default function BadgesPage() {
             {lockedBadges.map((badge) => (
               <div
                 key={badge.id}
-                className="sagp-card bg-slate-900/50 border border-slate-700/40 p-4 flex flex-col items-center gap-3 opacity-60 hover:opacity-75 transition-opacity"
+                tabIndex={0}
+                className="sagp-card bg-slate-900/50 border border-slate-700/40 p-4 flex flex-col items-center gap-3 hover:border-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-300 transition-colors motion-reduce:transition-none"
               >
-                <div className="h-16 w-16 flex items-center justify-center text-3xl rounded-lg bg-slate-700/30 grayscale">
-                  {badge.icon_url ? (
-                    <img src={badge.icon_url} alt={badge.name} className="h-12 w-12" />
-                  ) : (
-                    <Award className="h-12 w-12 text-slate-500" />
-                  )}
-                </div>
+                <GameBadgeIcon iconKey={badge.icon_key} name={badge.name} size="lg" earned={false} />
                 <div className="text-center">
                   <h3 className="sagp-heading-4 text-slate-400">{badge.name}</h3>
                   <p className="sagp-text-muted text-sm mt-1">{badge.description}</p>
                 </div>
+                <span className="rounded-full border border-slate-600 bg-slate-800 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+                  {getBadgeAsset(badge.icon_key).rarity}
+                </span>
                 <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                   <Lock className="h-3 w-3" /> Locked
                 </div>

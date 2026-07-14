@@ -7,7 +7,6 @@ import {
   RISK_TIER_COLORS,
 } from '@/lib/hooks/useLiveData';
 import {
-  LayoutDashboard,
   Shield,
   Trophy,
   Flame,
@@ -21,6 +20,7 @@ import {
   CheckIcon,
   XIcon,
 } from 'lucide-react';
+import { GameBadgeIcon } from '@/components/badges/GameBadgeIcon';
 
 export default function DashboardPage() {
   const { profile, membership, isLoading: authLoading } = useAuth();
@@ -179,13 +179,12 @@ export default function DashboardPage() {
                   className="flex items-center gap-2 p-2 rounded bg-cyan-500/10 border border-cyan-500/30 hover:border-cyan-500/60 transition-colors"
                   title={`Earned ${new Date(badge.earnedAt).toLocaleDateString()}`}
                 >
-                  <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-sm">
-                    {badge.badgeIcon ? (
-                      <img src={badge.badgeIcon} alt={badge.badgeName} className="w-5 h-5" />
-                    ) : (
-                      <Award className="w-4 h-4 text-cyan-400" />
-                    )}
-                  </div>
+                  <GameBadgeIcon
+                    iconKey={badge.badgeIconKey}
+                    name={badge.badgeName}
+                    size="sm"
+                    showRarityRing={false}
+                  />
                   <p className="text-xs text-cyan-300 truncate flex-1">{badge.badgeName}</p>
                 </div>
               ))}

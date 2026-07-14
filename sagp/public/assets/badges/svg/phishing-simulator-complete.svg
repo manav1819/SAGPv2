@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Email envelope and phishing hook badge">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#0284C7"/>
+        <stop offset="1" stop-color="#38BDF8"/>
+      </linearGradient>
+      <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
+        <stop offset="0.45" stop-color="#DCE7F4" stop-opacity="0.75"/>
+        <stop offset="1" stop-color="#7C8CA3" stop-opacity="0.95"/>
+      </linearGradient>
+      <radialGradient id="shine" cx="35%" cy="28%" r="70%">
+        <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.28"/>
+        <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.04"/>
+        <stop offset="1" stop-color="#000000" stop-opacity="0.2"/>
+      </radialGradient>
+      <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%">
+        <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.35"/>
+      </filter>
+      <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="3" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <g filter="url(#shadow)">
+      <polygon points="128,18 211,66 211,162 128,238 45,162 45,66" fill="url(#rim)"/>
+      <polygon points="128,29 201,71 201,157 128,225 55,157 55,71" fill="url(#bg)"/>
+      <polygon points="128,29 201,71 201,157 128,225 55,157 55,71" fill="url(#shine)"/>
+      <circle cx="128" cy="128" r="81" fill="#08111F" fill-opacity="0.18" stroke="#FFFFFF" stroke-opacity="0.30" stroke-width="3"/>
+      
+      <g opacity="0.18" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round">
+        <path d="M64 86 H86 L99 99"/><circle cx="60" cy="86" r="4" fill="#FFFFFF" stroke="none"/>
+        <path d="M192 151 H172 L157 166"/><circle cx="196" cy="151" r="4" fill="#FFFFFF" stroke="none"/>
+        <path d="M80 185 V169 L92 157"/><circle cx="80" cy="190" r="4" fill="#FFFFFF" stroke="none"/>
+      </g>
+      <g filter="url(#glow)"><rect x="60" y="83" width="136" height="94" rx="14" fill="none" stroke="#F8FAFC" stroke-width="9"/><path d="M66 94 L128 139 L190 94" fill="none" stroke="#F8FAFC" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M155 57 C184 57 197 78 197 99 V119 C197 137 184 150 167 150 C154 150 144 142 144 131 C144 122 151 115 160 115 C168 115 174 120 174 127" fill="none" stroke="#F8FAFC" stroke-width="9" stroke-linecap="round"/></g>
+      <path d="M78 61 C103 38 154 35 181 58" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="8" stroke-linecap="round"/>
+    </g>
+    </svg>

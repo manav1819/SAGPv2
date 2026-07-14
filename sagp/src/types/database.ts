@@ -133,6 +133,7 @@ export interface Badge {
   name: string;
   description: string;
   icon_url: string;
+  icon_key: import('@/lib/badges/badge-assets').BadgeAssetKey | string;
   badge_type: BadgeType;
   criteria: Record<string, unknown>;
   created_at: string;
@@ -150,6 +151,7 @@ export interface LeaderboardEntry {
   user_id: string;
   org_id: string;
   department: string | null;
+  display_name: string;
   scope: LeaderboardScope;
   total_points: number;
   badges_earned: number;
