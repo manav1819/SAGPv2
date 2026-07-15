@@ -22,8 +22,15 @@ interface GameResult {
   ended_at: string;
 }
 
-interface LeaderboardDatabaseRow extends Omit<LeaderboardEntry, 'display_name'> {
-  display_name?: string | null;
+// Raw shape of a `leaderboard` row as it actually exists in the DB — no
+// display_name column (that lives on `profiles`); resolved via a second
+// batch query below for every ranked user, not just the current one.
+interface LeaderboardRow {
+  user_id: string;
+  total_points: number;
+  badges_earned: number;
+  streak_days: number;
+  modules_completed: number;
 }
 
 interface SessionRow {
@@ -38,15 +45,14 @@ interface ModuleRow {
   title: string;
 }
 
+// 'Global' and 'Weekly' dropped: the leaderboard engine
+// (src/engines/gamification/leaderboard.ts) only ever writes 'org' and
+// 'department' scope rows, so those tabs could never show real data.
 type LeaderboardScope = 'Organisation' | 'Department';
 
 export default function LeaderboardPage() {
   const { profile, membership, isLoading: authLoading } = useAuth();
   const orgId = membership?.org_id;
-  // Defaults to 'Organisation' rather than 'Global': the leaderboard engine
-  // (src/engines/gamification/leaderboard.ts) only ever writes 'org' and
-  // 'department' scope rows — 'global' and 'weekly' are unimplemented and
-  // will always render empty, which looked like a broken page by default.
   const [scope, setScope] = useState<LeaderboardScope>('Organisation');
   const [rankings, setRankings] = useState<LeaderboardEntry[]>([]);
   const [userResults, setUserResults] = useState<GameResult[]>([]);
@@ -55,6 +61,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     if (!profile?.id || !orgId) {
+      setLoading(false);
       return;
     }
 
@@ -63,61 +70,61 @@ export default function LeaderboardPage() {
         setLoading(true);
         const supabase = createClient();
 
-        // Map scope to database scope value
         const scopeMap: Record<LeaderboardScope, 'org' | 'department'> = {
           Organisation: 'org',
           Department: 'department',
         };
 
-        // Fetch leaderboard data.
-        // NOTE: `leaderboard` has no display_name column (that lives on
-        // `profiles`) and no `games_completed` column (it's tracked as
-        // `modules_completed`) — resolve the name via a second query below,
-        // the same pattern already used for game titles further down.
-        const { data: leaderboardData, error: leaderboardError } = await supabase
-          .from('leaderboard')
-          .select('user_id, total_points, badges_earned, streak_days, modules_completed')
-          .eq('org_id', orgId)
-          .eq('scope', scopeMap[scope])
-          .order('total_points', { ascending: false })
-          .order('updated_at', { ascending: true })
-          .order('user_id', { ascending: true })
-          .limit(50);
-
         const hasDepartment = Boolean(membership?.department);
-        if (scope === 'Department' && membership?.department) {
-          leaderboardQuery = leaderboardQuery.eq('department', membership.department);
-        }
 
+        // Department scope with no department assigned has nothing to show —
+        // skip the query entirely rather than returning other departments'
+        // rows (there's no department filter to apply otherwise).
         if (scope === 'Department' && !hasDepartment) {
           setRankings([]);
         } else {
-          let { data: leaderboardData, error: leaderboardError } = await leaderboardQuery;
-          if (leaderboardError?.code === '42703' && leaderboardError.message.includes('display_name')) {
-            let fallbackQuery = supabase
-              .from('leaderboard')
-              .select('user_id, total_points, badges_earned, streak_days, modules_completed, updated_at')
-              .eq('org_id', orgId)
-              .eq('scope', scopeMap[scope])
-              .order('total_points', { ascending: false })
-              .order('updated_at', { ascending: true })
-              .order('user_id', { ascending: true })
-              .limit(50);
-            if (scope === 'Department' && membership?.department) {
-              fallbackQuery = fallbackQuery.eq('department', membership.department);
-            }
-            const fallback = await fallbackQuery;
-            leaderboardData = fallback.data as typeof leaderboardData;
-            leaderboardError = fallback.error;
+          let leaderboardQuery = supabase
+            .from('leaderboard')
+            .select('user_id, total_points, badges_earned, streak_days, modules_completed')
+            .eq('org_id', orgId)
+            .eq('scope', scopeMap[scope])
+            .order('total_points', { ascending: false })
+            .order('updated_at', { ascending: true })
+            .order('user_id', { ascending: true })
+            .limit(50);
+
+          if (scope === 'Department' && membership?.department) {
+            leaderboardQuery = leaderboardQuery.eq('department', membership.department);
           }
+
+          const { data: leaderboardData, error: leaderboardError } = await leaderboardQuery;
           if (leaderboardError) throw leaderboardError;
-          setRankings(((leaderboardData ?? []) as LeaderboardDatabaseRow[]).map((entry) => ({
-            ...entry,
-            display_name: entry.display_name?.trim() ||
-              (entry.user_id === profile.id
-                ? profile.display_name?.trim() || `${profile.first_name} ${profile.last_name}`.trim() || 'You'
-                : 'Player'),
-          })));
+
+          const leaderboardRows = (leaderboardData ?? []) as LeaderboardRow[];
+          const rankedUserIds = [...new Set(leaderboardRows.map((r) => r.user_id).filter(Boolean))];
+          const nameMap = new Map<string, string>();
+
+          if (rankedUserIds.length > 0) {
+            const { data: profilesData } = await supabase
+              .from('profiles')
+              .select('id, display_name, first_name, last_name, email')
+              .in('id', rankedUserIds);
+
+            for (const p of profilesData ?? []) {
+              const name =
+                p.display_name?.trim() ||
+                [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
+                p.email;
+              nameMap.set(p.id, name);
+            }
+          }
+
+          setRankings(
+            leaderboardRows.map((r) => ({
+              ...r,
+              display_name: nameMap.get(r.user_id) ?? (r.user_id === profile.id ? 'You' : 'Player'),
+            }))
+          );
         }
 
         // Fetch current user's game results
@@ -170,15 +177,7 @@ export default function LeaderboardPage() {
     };
 
     fetchLeaderboard();
-  }, [
-    profile?.id,
-    profile?.display_name,
-    profile?.first_name,
-    profile?.last_name,
-    orgId,
-    membership?.department,
-    scope,
-  ]);
+  }, [profile?.id, orgId, membership?.department, scope]);
 
   const getMedalIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="h-5 w-5 text-amber-300" aria-label="First place" />;
