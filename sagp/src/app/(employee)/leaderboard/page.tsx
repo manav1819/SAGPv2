@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Trophy, Medal } from 'lucide-react';
+import { Check, Flame, Medal, Trophy, X } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 
@@ -22,10 +22,26 @@ interface GameResult {
   ended_at: string;
 }
 
-type LeaderboardScope = 'Global' | 'Organisation' | 'Department' | 'Weekly';
+interface LeaderboardDatabaseRow extends Omit<LeaderboardEntry, 'display_name'> {
+  display_name?: string | null;
+}
+
+interface SessionRow {
+  module_id: string | null;
+  score: number | null;
+  passed: boolean | null;
+  ended_at: string;
+}
+
+interface ModuleRow {
+  id: string;
+  title: string;
+}
+
+type LeaderboardScope = 'Organisation' | 'Department';
 
 export default function LeaderboardPage() {
-  const { profile, membership } = useAuth();
+  const { profile, membership, isLoading: authLoading } = useAuth();
   const orgId = membership?.org_id;
   // Defaults to 'Organisation' rather than 'Global': the leaderboard engine
   // (src/engines/gamification/leaderboard.ts) only ever writes 'org' and
@@ -39,7 +55,6 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     if (!profile?.id || !orgId) {
-      setLoading(false);
       return;
     }
 
@@ -49,11 +64,9 @@ export default function LeaderboardPage() {
         const supabase = createClient();
 
         // Map scope to database scope value
-        const scopeMap: Record<LeaderboardScope, string> = {
-          Global: 'global',
+        const scopeMap: Record<LeaderboardScope, 'org' | 'department'> = {
           Organisation: 'org',
           Department: 'department',
-          Weekly: 'weekly',
         };
 
         // Fetch leaderboard data.
@@ -67,39 +80,45 @@ export default function LeaderboardPage() {
           .eq('org_id', orgId)
           .eq('scope', scopeMap[scope])
           .order('total_points', { ascending: false })
+          .order('updated_at', { ascending: true })
+          .order('user_id', { ascending: true })
           .limit(50);
 
-        if (leaderboardError) throw leaderboardError;
-
-        const leaderboardRows = leaderboardData ?? [];
-        const rankedUserIds = [...new Set(leaderboardRows.map((r: any) => r.user_id).filter(Boolean))];
-        const nameMap = new Map<string, string>();
-
-        if (rankedUserIds.length > 0) {
-          const { data: profilesData } = await supabase
-            .from('profiles')
-            .select('id, display_name, first_name, last_name, email')
-            .in('id', rankedUserIds);
-
-          for (const p of profilesData ?? []) {
-            const name =
-              p.display_name ||
-              [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
-              p.email;
-            nameMap.set(p.id, name);
-          }
+        const hasDepartment = Boolean(membership?.department);
+        if (scope === 'Department' && membership?.department) {
+          leaderboardQuery = leaderboardQuery.eq('department', membership.department);
         }
 
-        setRankings(
-          leaderboardRows.map((r: any) => ({
-            user_id: r.user_id,
-            display_name: nameMap.get(r.user_id) ?? 'Unknown User',
-            total_points: r.total_points,
-            badges_earned: r.badges_earned,
-            streak_days: r.streak_days,
-            modules_completed: r.modules_completed,
-          }))
-        );
+        if (scope === 'Department' && !hasDepartment) {
+          setRankings([]);
+        } else {
+          let { data: leaderboardData, error: leaderboardError } = await leaderboardQuery;
+          if (leaderboardError?.code === '42703' && leaderboardError.message.includes('display_name')) {
+            let fallbackQuery = supabase
+              .from('leaderboard')
+              .select('user_id, total_points, badges_earned, streak_days, modules_completed, updated_at')
+              .eq('org_id', orgId)
+              .eq('scope', scopeMap[scope])
+              .order('total_points', { ascending: false })
+              .order('updated_at', { ascending: true })
+              .order('user_id', { ascending: true })
+              .limit(50);
+            if (scope === 'Department' && membership?.department) {
+              fallbackQuery = fallbackQuery.eq('department', membership.department);
+            }
+            const fallback = await fallbackQuery;
+            leaderboardData = fallback.data as typeof leaderboardData;
+            leaderboardError = fallback.error;
+          }
+          if (leaderboardError) throw leaderboardError;
+          setRankings(((leaderboardData ?? []) as LeaderboardDatabaseRow[]).map((entry) => ({
+            ...entry,
+            display_name: entry.display_name?.trim() ||
+              (entry.user_id === profile.id
+                ? profile.display_name?.trim() || `${profile.first_name} ${profile.last_name}`.trim() || 'You'
+                : 'Player'),
+          })));
+        }
 
         // Fetch current user's game results
         const { data: sessionsData, error: sessionsError } = await supabase
@@ -114,8 +133,8 @@ export default function LeaderboardPage() {
         if (sessionsError) throw sessionsError;
 
         // Resolve module titles to game titles
-        const sessionRows = sessionsData ?? [];
-        const moduleIds = [...new Set(sessionRows.map((s: any) => s.module_id).filter(Boolean))];
+        const sessionRows = (sessionsData ?? []) as SessionRow[];
+        const moduleIds = [...new Set(sessionRows.map((session) => session.module_id).filter((id): id is string => Boolean(id)))];
         const moduleMap = new Map<string, { title: string; maxScore: number }>();
 
         if (moduleIds.length > 0) {
@@ -124,19 +143,19 @@ export default function LeaderboardPage() {
             .select('id, title')
             .in('id', moduleIds);
 
-          for (const m of modulesData ?? []) {
+          for (const m of (modulesData ?? []) as ModuleRow[]) {
             moduleMap.set(m.id, { title: m.title, maxScore: 1000 }); // TODO: Get maxScore from games config
           }
         }
 
-        const results = sessionRows.map((s: any) => {
-          const module = moduleMap.get(s.module_id);
+        const results = sessionRows.map((session) => {
+          const gameModule = session.module_id ? moduleMap.get(session.module_id) : undefined;
           return {
-            game_title: module?.title ?? 'Unknown Game',
-            score: s.score ?? 0,
-            max_score: module?.maxScore ?? 1000,
-            passed: s.passed ?? false,
-            ended_at: s.ended_at,
+            game_title: gameModule?.title ?? 'Unknown Game',
+            score: session.score ?? 0,
+            max_score: gameModule?.maxScore ?? 1000,
+            passed: session.passed ?? false,
+            ended_at: session.ended_at,
           };
         });
 
@@ -151,14 +170,40 @@ export default function LeaderboardPage() {
     };
 
     fetchLeaderboard();
-  }, [profile?.id, orgId, scope]);
+  }, [
+    profile?.id,
+    profile?.display_name,
+    profile?.first_name,
+    profile?.last_name,
+    orgId,
+    membership?.department,
+    scope,
+  ]);
 
   const getMedalIcon = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
+    if (rank === 1) return <Trophy className="h-5 w-5 text-amber-300" aria-label="First place" />;
+    if (rank === 2) return <Medal className="h-5 w-5 text-slate-200" aria-label="Second place" />;
+    if (rank === 3) return <Medal className="h-5 w-5 text-orange-400" aria-label="Third place" />;
     return null;
   };
+
+  if (authLoading) {
+    return (
+      <div className="sagp-content-area p-6 lg:p-8 space-y-6">
+        <div className="text-center text-sagp-muted">Loading leaderboard...</div>
+      </div>
+    );
+  }
+
+  if (!profile?.id || !orgId) {
+    return (
+      <div className="sagp-content-area p-6 lg:p-8">
+        <div className="sagp-card p-6 text-center text-sagp-muted">
+          Leaderboard access requires an active organisation membership.
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -172,7 +217,7 @@ export default function LeaderboardPage() {
     <div className="sagp-content-area p-6 lg:p-8 space-y-6">
       {/* Scope tabs */}
       <div className="flex gap-2 border-b border-slate-700 pb-3 overflow-x-auto">
-        {(['Global', 'Organisation', 'Department', 'Weekly'] as const).map((s) => (
+        {(['Organisation', 'Department'] as const).map((s) => (
           <button
             key={s}
             onClick={() => setScope(s)}
@@ -214,7 +259,7 @@ export default function LeaderboardPage() {
                     <th className="px-4 py-3 text-right text-sagp-muted">Points</th>
                     <th className="px-4 py-3 text-right text-sagp-muted">Badges</th>
                     <th className="px-4 py-3 text-right text-sagp-muted">Streak</th>
-                    <th className="px-4 py-3 text-right text-sagp-muted">Games</th>
+                    <th className="px-4 py-3 text-right text-sagp-muted">Modules</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -231,7 +276,7 @@ export default function LeaderboardPage() {
                         }`}
                       >
                         <td className="px-4 py-3 text-white font-semibold">
-                          {medal ? <span className="text-lg">{medal}</span> : idx + 1}
+                          {medal ?? idx + 1}
                         </td>
                         <td className={`px-4 py-3 ${isCurrentUser ? 'text-cyan-300 font-semibold' : 'text-white'}`}>
                           {entry.display_name}
@@ -240,7 +285,9 @@ export default function LeaderboardPage() {
                         <td className="px-4 py-3 text-right text-cyan-400 font-semibold">{entry.total_points}</td>
                         <td className="px-4 py-3 text-right text-purple-400">{entry.badges_earned ?? 0}</td>
                         <td className="px-4 py-3 text-right text-orange-400">
-                          {entry.streak_days ?? 0}🔥
+                          <span className="inline-flex items-center justify-end gap-1">
+                            {entry.streak_days ?? 0}<Flame className="h-4 w-4" aria-hidden="true" />
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-right text-green-400">{entry.modules_completed ?? 0}</td>
                       </tr>
@@ -279,7 +326,10 @@ export default function LeaderboardPage() {
                           : 'bg-red-500/20 text-red-400 border border-red-500/40'
                       }`}
                     >
-                      {result.passed ? '✓ Pass' : '✗ Fail'}
+                      <span className="inline-flex items-center gap-1">
+                        {result.passed ? <Check className="h-3 w-3" aria-hidden="true" /> : <X className="h-3 w-3" aria-hidden="true" />}
+                        {result.passed ? 'Pass' : 'Fail'}
+                      </span>
                     </span>
                   </div>
                   <div className="space-y-1">
@@ -293,7 +343,7 @@ export default function LeaderboardPage() {
                       <div
                         className="bg-gradient-to-r from-cyan-500 to-purple-500 h-1.5 rounded transition-all"
                         style={{
-                          width: `${(result.score / result.max_score) * 100}%`,
+                          width: `${Math.min(100, Math.max(0, (result.score / result.max_score) * 100))}%`,
                         }}
                       />
                     </div>

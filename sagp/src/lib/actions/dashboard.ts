@@ -16,6 +16,7 @@ import { computeCompanyScore, getScoreHistory } from '@/engines/analytics/compan
 import { GAMES } from '@/config/games.config';
 import type { RiskTier, SecurityPersona, UserRole } from '@/types/database';
 import type { RiskScoreExplanation } from '@/engines/analytics/risk-score';
+import { getBadgeAssetByName } from '@/lib/badges/badge-assets';
 
 // ── Employee dashboard ──────────────────────────────────────────────────────
 export interface EmployeeDashboardData {
@@ -29,7 +30,7 @@ export interface EmployeeDashboardData {
   userBadges: Array<{
     badgeId: string;
     badgeName: string;
-    badgeIcon: string | null;
+    badgeIconKey: string | null;
     earnedAt: string;
   }>;
   recentSessions: Array<{
@@ -42,6 +43,19 @@ export interface EmployeeDashboardData {
     passed: boolean | null;
     endedAt: string | null;
   }>;
+}
+
+interface DashboardSessionRow {
+  id: string;
+  module_id: string | null;
+  score: number | null;
+  passed: boolean | null;
+  ended_at: string | null;
+}
+
+interface DashboardBadgeRow {
+  badges: { id: string; name: string } | null;
+  earned_at: string;
 }
 
 export async function getEmployeeDashboardData(
@@ -119,7 +133,7 @@ export async function getEmployeeDashboardData(
       // User badges with badge details
       client
         .from('user_badges')
-        .select('badges(id, name, icon_url), earned_at')
+        .select('badges(id, name), earned_at')
         .eq('user_id', userId)
         .order('earned_at', { ascending: false })
         .limit(5),
@@ -128,8 +142,12 @@ export async function getEmployeeDashboardData(
     // Resolve module titles for the recent sessions list.
     // We do this as a separate IN query rather than a PostgREST join to avoid
     // silent null returns when the FK hint syntax varies across PostgREST versions.
-    const sessionRows = sessionsRes.data ?? [];
-    const moduleIds = [...new Set(sessionRows.map((s: any) => s.module_id).filter(Boolean))];
+    const sessionRows = (sessionsRes.data ?? []) as DashboardSessionRow[];
+    const moduleIds = [...new Set(
+      sessionRows
+        .map((session) => session.module_id)
+        .filter((id): id is string => Boolean(id))
+    )];
     const moduleTitleMap = new Map<string, string>();
 
     if (moduleIds.length > 0) {
@@ -151,25 +169,27 @@ export async function getEmployeeDashboardData(
       streakDays: streakRes.data?.streak_days ?? 0,
       totalPoints: streakRes.data?.total_points ?? 0,
       modulesCompleted: completedRes.count ?? 0,
-      userBadges: (badgesRes.data ?? []).map((b: any) => ({
-        badgeId: b.badges?.id ?? '',
-        badgeName: b.badges?.name ?? 'Unknown Badge',
-        badgeIcon: b.badges?.icon_url ?? null,
-        earnedAt: b.earned_at,
+      userBadges: ((badgesRes.data ?? []) as unknown as DashboardBadgeRow[]).map((badgeRow) => ({
+        badgeId: badgeRow.badges?.id ?? '',
+        badgeName: badgeRow.badges?.name ?? 'Unknown Badge',
+        badgeIconKey: getBadgeAssetByName(badgeRow.badges?.name).id,
+        earnedAt: badgeRow.earned_at,
       })),
-      recentSessions: sessionRows.map((s: any) => {
-        const moduleTitle = moduleTitleMap.get(s.module_id) ?? 'Unknown module';
+      recentSessions: sessionRows.map((session) => {
+        const moduleTitle = session.module_id
+          ? moduleTitleMap.get(session.module_id) ?? 'Unknown module'
+          : 'Unknown module';
         const gameId = extractGameId(moduleTitle);
         const gameConfig = getGameConfig(gameId);
         return {
-          id: s.id,
+          id: session.id,
           moduleTitle,
           gameId,
           gameTitle: gameConfig?.title ?? null,
           maxScore: gameConfig?.maxScore ?? null,
-          score: s.score,
-          passed: s.passed,
-          endedAt: s.ended_at,
+          score: session.score,
+          passed: session.passed,
+          endedAt: session.ended_at,
         };
       }),
     };

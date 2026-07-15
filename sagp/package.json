@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "test": "tsx --test tests/badge-assets.test.tsx",
     "start": "next start",
     "lint": "eslint",
     "sync:games": "tsx scripts/sync-games.ts"
