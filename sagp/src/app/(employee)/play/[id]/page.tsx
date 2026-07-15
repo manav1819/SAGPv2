@@ -5,6 +5,15 @@ import { use, useState } from 'react';
 import { GAMES } from '@/config/games.config';
 import { IframeGame } from '@/components/games/IframeGame';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { ModeSelectDialog, type GameDifficultyMode } from '@/components/game/ModeSelectDialog';
+
+/**
+ * Games that offer a Basic / Challenge difficulty picker before boot.
+ * CyberForge is the first game wired up for this — see PROJECT notes on
+ * "gamification difficulty modes". Add more game ids here as they're
+ * updated to read `?mode=` from their own iframe URL.
+ */
+const DIFFICULTY_MODE_GAMES = new Set(['cyberforge']);
 
 interface PlayPageProps {
   params: Promise<{ id: string }>;
@@ -40,9 +49,23 @@ export default function PlayPage({ params }: PlayPageProps) {
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
 
+  const needsModePicker = DIFFICULTY_MODE_GAMES.has(game.id);
+  const [mode, setMode] = useState<GameDifficultyMode | null>(null);
+
   if (game.type === 'iframe' && game.iframeUrl) {
+    if (needsModePicker && !mode) {
+      return (
+        <ModeSelectDialog open gameTitle={game.title} onSelect={setMode} />
+      );
+    }
+
     return (
-      <IframeGame game={game} playerName={playerName} sessionRef={sessionRef} />
+      <IframeGame
+        game={game}
+        playerName={playerName}
+        sessionRef={sessionRef}
+        mode={mode ?? undefined}
+      />
     );
   }
 

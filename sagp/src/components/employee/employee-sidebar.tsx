@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { flushActiveGameSave } from '@/lib/game-save/activeGameSaveRegistry';
 import {
   LayoutDashboard,
   Trophy,
@@ -39,6 +40,12 @@ export function EmployeeSidebar({
 
   const handleLogout = async () => {
     try {
+      // If a game is currently mounted (e.g. the employee is mid-CyberForge
+      // session), this pushes its latest known state to Supabase first.
+      // Logout is a client-side navigation, so window 'beforeunload' never
+      // fires and the game's autosave interval can't be relied on to have
+      // just run — without this, up to ~15s of progress could be lost.
+      await flushActiveGameSave();
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
     } catch (error) {
