@@ -50,6 +50,11 @@ export class HUD {
         this._timerLbl = this._txt(W/2 - 60, 25, 'TIME', 11, '#aaaaaa').setOrigin(0.5, 0.5).setX(W/2);
         this._timerVal = this._txt(W/2, 46, '1:30', 30, '#00ffff').setOrigin(0.5, 0.5);
 
+        // Difficulty level tag — set once, doesn't change during the round.
+        const LEVEL_COLORS = { easy: '#00ff88', medium: '#00ffff', legendary: '#ff2222' };
+        const levelColor = LEVEL_COLORS[this.diff.level] || '#00ffff';
+        this._txt(W/2, 74, this.diff.levelLabel, 11, levelColor).setOrigin(0.5, 0.5);
+
         // ── TOP RIGHT: Accuracy & Wave ───────────────────────────────────────
         this._panel(W - 230, 8, 222, 70);
         this._accLbl  = this._txt(W - 220, 32, 'ACC', 11, '#aaaaaa');

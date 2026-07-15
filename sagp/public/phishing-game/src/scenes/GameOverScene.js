@@ -40,7 +40,7 @@ export default class GameOverScene extends Phaser.Scene {
         type:     'GAME_COMPLETE',
         score:    this.sessionData.finalScore ?? 0,
         passed:   this.won,
-        maxScore: 500,
+        maxScore: this._maxPossibleScore(),
         accuracy: this.sessionData.accuracy ?? 0,
         avgResponseTimeMs: this.sessionData.avgResponseTimeMs ?? 0,
       }, window.location.origin || '*');
@@ -113,7 +113,7 @@ export default class GameOverScene extends Phaser.Scene {
     const avgTimeSec = ((sd.avgResponseTimeMs || 0) / 1000).toFixed(1);
     const correct    = (sd.emails || []).filter(e => e.correct).length;
     const total      = (sd.emails || []).length;
-    const maxScore   = total * 175 + Math.max(0, total - 2) * 25;
+    const maxScore   = this._maxPossibleScore();
 
     // Per-email rows HTML
     const rowsHTML = (sd.emails || []).map((e, i) => {
@@ -299,11 +299,24 @@ export default class GameOverScene extends Phaser.Scene {
         type:     'GAME_COMPLETE',
         score:    this.sessionData.finalScore ?? 0,
         passed:   this.won,
-        maxScore: 500,
+        maxScore: this._maxPossibleScore(),
         accuracy: this.sessionData.accuracy ?? 0,
         avgResponseTimeMs: this.sessionData.avgResponseTimeMs ?? 0,
       }, window.location.origin || '*');
     }
+  }
+
+  // ----------------------------------------------------------
+  //  Max possible score for this session's email count.
+  //  Mirrors the "Max possible" figure shown in the report panel below
+  //  (_buildReportDOM) so the GAME_COMPLETE payload never reports a
+  //  maxScore the player's actual score could exceed. Previously this
+  //  was hardcoded to 500 while a real 10-email run can score up to 1950,
+  //  which silently broke any downstream normalization against maxScore.
+  // ----------------------------------------------------------
+  _maxPossibleScore() {
+    const total = (this.sessionData.emails || []).length;
+    return total * 175 + Math.max(0, total - 2) * 25;
   }
 
   // ----------------------------------------------------------

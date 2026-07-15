@@ -33,6 +33,11 @@ export class GameScene extends Phaser.Scene {
 
     // ── LIFECYCLE ─────────────────────────────────────────────────────────────
 
+    /** Receives { level } from MenuScene's difficulty-select buttons. */
+    init(data) {
+        this._level = (data && data.level) || 'medium';
+    }
+
     create() {
         const W = 1280, H = 720;
         this._time            = 0;
@@ -58,7 +63,7 @@ export class GameScene extends Phaser.Scene {
         // ── Systems ────────────────────────────────────────────────────────────
         this.score  = new ScoreSystem();
         this.ammo   = new AmmoSystem();
-        this.diff   = new DifficultySystem();
+        this.diff   = new DifficultySystem(this._level);
         this.fx     = new Effects(this);
         this.audio  = new AudioManager(this);
 
@@ -520,7 +525,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     _waveAnnounce() {
-        this.fx.announce(`WAVE ${this.diff.wave} — HUNT BEGINS`, '#00ffff', 'IDENTIFY AND ELIMINATE THREATS');
+        this.fx.announce(`WAVE ${this.diff.wave} — HUNT BEGINS`, '#00ffff', `${this.diff.levelLabel} DIFFICULTY`);
     }
 
     // ── WAVE TRANSITION CLEANUP ───────────────────────────────────────────────
@@ -572,7 +577,9 @@ export class GameScene extends Phaser.Scene {
 
         this.cameras.main.fadeOut(700, 0, 0, 0);
         this.time.delayedCall(700, () => {
-            this.scene.start('GameOverScene', { summary: this.score.summary });
+            this.scene.start('GameOverScene', {
+                summary: { ...this.score.summary, level: this._level },
+            });
         });
     }
 

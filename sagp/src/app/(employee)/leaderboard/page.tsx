@@ -11,7 +11,7 @@ interface LeaderboardEntry {
   total_points: number;
   badges_earned: number;
   streak_days: number;
-  games_completed: number;
+  modules_completed: number;
 }
 
 interface GameResult {
@@ -27,7 +27,11 @@ type LeaderboardScope = 'Global' | 'Organisation' | 'Department' | 'Weekly';
 export default function LeaderboardPage() {
   const { profile, membership } = useAuth();
   const orgId = membership?.org_id;
-  const [scope, setScope] = useState<LeaderboardScope>('Global');
+  // Defaults to 'Organisation' rather than 'Global': the leaderboard engine
+  // (src/engines/gamification/leaderboard.ts) only ever writes 'org' and
+  // 'department' scope rows — 'global' and 'weekly' are unimplemented and
+  // will always render empty, which looked like a broken page by default.
+  const [scope, setScope] = useState<LeaderboardScope>('Organisation');
   const [rankings, setRankings] = useState<LeaderboardEntry[]>([]);
   const [userResults, setUserResults] = useState<GameResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,10 +56,14 @@ export default function LeaderboardPage() {
           Weekly: 'weekly',
         };
 
-        // Fetch leaderboard data
+        // Fetch leaderboard data.
+        // NOTE: `leaderboard` has no display_name column (that lives on
+        // `profiles`) and no `games_completed` column (it's tracked as
+        // `modules_completed`) — resolve the name via a second query below,
+        // the same pattern already used for game titles further down.
         const { data: leaderboardData, error: leaderboardError } = await supabase
           .from('leaderboard')
-          .select('user_id, display_name, total_points, badges_earned, streak_days, games_completed')
+          .select('user_id, total_points, badges_earned, streak_days, modules_completed')
           .eq('org_id', orgId)
           .eq('scope', scopeMap[scope])
           .order('total_points', { ascending: false })
@@ -63,7 +71,35 @@ export default function LeaderboardPage() {
 
         if (leaderboardError) throw leaderboardError;
 
-        setRankings(leaderboardData ?? []);
+        const leaderboardRows = leaderboardData ?? [];
+        const rankedUserIds = [...new Set(leaderboardRows.map((r: any) => r.user_id).filter(Boolean))];
+        const nameMap = new Map<string, string>();
+
+        if (rankedUserIds.length > 0) {
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, display_name, first_name, last_name, email')
+            .in('id', rankedUserIds);
+
+          for (const p of profilesData ?? []) {
+            const name =
+              p.display_name ||
+              [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
+              p.email;
+            nameMap.set(p.id, name);
+          }
+        }
+
+        setRankings(
+          leaderboardRows.map((r: any) => ({
+            user_id: r.user_id,
+            display_name: nameMap.get(r.user_id) ?? 'Unknown User',
+            total_points: r.total_points,
+            badges_earned: r.badges_earned,
+            streak_days: r.streak_days,
+            modules_completed: r.modules_completed,
+          }))
+        );
 
         // Fetch current user's game results
         const { data: sessionsData, error: sessionsError } = await supabase
@@ -206,7 +242,7 @@ export default function LeaderboardPage() {
                         <td className="px-4 py-3 text-right text-orange-400">
                           {entry.streak_days ?? 0}🔥
                         </td>
-                        <td className="px-4 py-3 text-right text-green-400">{entry.games_completed ?? 0}</td>
+                        <td className="px-4 py-3 text-right text-green-400">{entry.modules_completed ?? 0}</td>
                       </tr>
                     );
                   })}

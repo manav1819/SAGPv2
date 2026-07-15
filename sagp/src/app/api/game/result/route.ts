@@ -68,6 +68,59 @@ function normaliseResult(result: Record<string, unknown>) {
   return { score, maxScore, passed };
 }
 
+// ── Cross-game score normalization ─────────────────────────────────────────
+//
+// Raw `score` scales wildly across games (Phishing ~1950 max, CyberForge
+// 3000, CyberCarnival 10000, Human Firewall effectively uncapped), so
+// leaderboard.total_points — a plain SUM(score) across every game a user
+// has played — is dominated by whichever high-scale game they happened to
+// play. normalizedScore rescales every session to a common 0-1000 band
+// using the *maxScore this session itself reported*, so leaderboard/badge
+// aggregation is comparable across games. See
+// supabase/migrations/20260715000000_normalized_game_scores.sql for the
+// matching historical backfill and rationale.
+//
+// IMPORTANT: this is a gamification-layer concept only. The risk engine
+// (src/engines/analytics/risk-score.ts) must keep scoring users from
+// game_events (correctness / reaction time), never from this value — see
+// the guard comment at the top of that file.
+//
+// Also important: this MUST be computed here, from the raw score/maxScore
+// straight off the GAME_COMPLETE payload, before processSessionCompletion()
+// runs. That pipeline (src/engines/gamification/index.ts) overwrites this
+// session's `score` column with a differently-computed calculatePoints()
+// value shortly after insert — so normalized_score would be wrong if it
+// were derived from `score` read back later instead of from this payload.
+function computeNormalizedScore(score: number, maxScore: number): number {
+  if (!maxScore || maxScore <= 0) return 0;
+  return Math.min(1000, Math.max(0, Math.round((score / maxScore) * 1000)));
+}
+
+// ── CyberCarnival: Threat Hunt — difficulty levels ─────────────────────────────
+//
+// carnival-shooter is a single games.config.ts entry; the player picks a
+// difficulty (easy/medium/legendary) inside the game's own menu, and the
+// GAME_COMPLETE payload reports which one was played via `result.level`.
+// We suffix the module title per level so each difficulty tracks as its own
+// module/session history — which is what the per-level completion badges
+// (seeded in supabase/migrations/20260712000000_carnival_difficulty_badges.sql)
+// key off via badges.ts's game_id map.
+
+const CARNIVAL_LEVELS = ['easy', 'medium', 'legendary'] as const;
+type CarnivalLevel = (typeof CARNIVAL_LEVELS)[number];
+
+function resolveCarnivalLevel(result: Record<string, unknown>): CarnivalLevel {
+  const raw = typeof result.level === 'string' ? result.level.toLowerCase() : '';
+  return (CARNIVAL_LEVELS as readonly string[]).includes(raw) ? (raw as CarnivalLevel) : 'medium';
+}
+
+function moduleTitleFor(gameId: string, gameTitle: string, result: Record<string, unknown>): string {
+  if (gameId !== 'carnival-shooter') return `[Game] ${gameTitle}`;
+  const level = resolveCarnivalLevel(result);
+  const suffix = level.charAt(0).toUpperCase() + level.slice(1); // Easy | Medium | Legendary
+  return `[Game] ${gameTitle} — ${suffix}`;
+}
+
 // ── POST ──────────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -128,7 +181,7 @@ export async function POST(req: NextRequest) {
       gameType: 'scenario' as GameType,
     };
 
-    const moduleTitle = `[Game] ${gameConfig.title}`;
+    const moduleTitle = moduleTitleFor(gameId, gameConfig.title, result);
     let moduleId: string;
 
     const { data: existingModule } = await service
@@ -165,6 +218,7 @@ export async function POST(req: NextRequest) {
 
     // ── 5. Normalise result, compute attempt number ───────────────────────
     const { score, maxScore, passed } = normaliseResult(result);
+    const normalizedScore = computeNormalizedScore(score, maxScore);
 
     const { count } = await service
       .from('game_sessions')
@@ -187,6 +241,7 @@ export async function POST(req: NextRequest) {
             org_id,
             status: 'completed' as SessionStatus,
             score,
+            normalized_score: normalizedScore,
             passed,
             attempt_number: attemptNumber,
             time_bucket: classifyTime(gameConfig.estimatedMinutes * 60),

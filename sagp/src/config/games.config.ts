@@ -116,7 +116,11 @@ export const GAMES: GameConfig[] = [
     thumbnail: '/phishing-game/thumbnail.png',
     category: 'Security Awareness',
     difficulty: 2,
-    maxScore: 500,
+    // NOTE: was 500 — the game shows 10 emails and scores up to 175 pts each
+    // plus a streak bonus (total * 175 + max(0, total - 2) * 25 = 1950 for a
+    // perfect 10-email run; see InboxScene.js / GameOverScene.js). 500 was
+    // never achievable-consistent; fixed to the true max for a 10-email round.
+    maxScore: 1950,
     estimatedMinutes: 5,
     iframeUrl: '/phishing-game/index.html',
     active: true,
@@ -130,7 +134,11 @@ export const GAMES: GameConfig[] = [
     type: 'iframe',
     category: 'Security Awareness',
     difficulty: 2,
-    maxScore: 500,
+    // NOTE: was 500 — the game itself only ever reports maxScore: 100 in its
+    // GAME_COMPLETE payload (see social-engineering-game.html), which is what
+    // normaliseResult() in /api/game/result actually uses as the denominator.
+    // 500 never matched what the game could produce; fixed to the true value.
+    maxScore: 100,
     estimatedMinutes: 5,
     iframeUrl: '/vishing/social-engineering-game.html',
     active: true,
@@ -145,7 +153,10 @@ export const GAMES: GameConfig[] = [
     thumbnail: '/3dGame/thumbnail.png',
     category: 'Threat Detection',
     difficulty: 2,
-    maxScore: 1000,
+    // NOTE: was 1000 — the game's securityScore is hard-clamped to 0-200
+    // (see public/3dGame/src/systems/ScoreManager.js) and the compiled bundle
+    // reports maxScore: 200 in its GAME_COMPLETE payload. Fixed to match.
+    maxScore: 200,
     estimatedMinutes: 10,
     iframeUrl: '/3dGame/index.html',
     active: true,

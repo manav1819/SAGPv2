@@ -15,15 +15,23 @@ export async function updateLeaderboard(
     .eq('org_id', orgId)
     .single();
 
-  // Calculate total points from all completed sessions
+  // Calculate total points from all completed sessions.
+  //
+  // Uses normalized_score (0-1000 per session, rescaled from each game's own
+  // maxScore) rather than the raw `score` column. Raw scores are on wildly
+  // different scales per game (Phishing ~1950 max, CyberForge 3000,
+  // CyberCarnival 10000, Human Firewall effectively uncapped) — summing them
+  // directly made total_points mostly reflect which high-scale games a user
+  // happened to play, not overall performance. See
+  // supabase/migrations/20260715000000_normalized_game_scores.sql.
   const { data: sessions } = await client
     .from('game_sessions')
-    .select('score, passed')
+    .select('normalized_score, passed')
     .eq('user_id', userId)
     .eq('org_id', orgId)
     .eq('status', 'completed');
 
-  const totalPoints = sessions?.reduce((sum, s) => sum + (s.score || 0), 0) || 0;
+  const totalPoints = sessions?.reduce((sum, s) => sum + (s.normalized_score || 0), 0) || 0;
 
   const { data: badges } = await client
     .from('user_badges')

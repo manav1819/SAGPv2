@@ -60,13 +60,27 @@ export async function checkAndAwardBadges(
   const existingBadgeIds = new Set(existingBadges?.map((b) => b.badge_id) || []);
 
   // Build set of completed games from sessions
-  // Map module titles to game IDs using games config
+  // Map module titles to game IDs using games config.
+  //
+  // NOTE: modules created by /api/game/result are titled `[Game] <title>`
+  // (see moduleTitleFor() there), not the bare title — so we strip that
+  // prefix before lookup. Previously this map's keys had no prefix and the
+  // "[Game] " one always came through the DB, so this lookup never matched
+  // and `game_completed` criteria badges were never actually awarded.
+  //
+  // CyberCarnival: Threat Hunt is one games.config.ts entry with an in-game
+  // difficulty picker; each level's module title carries a "— Easy" /
+  // "— Medium" / "— Legendary" suffix (again from moduleTitleFor()), so it
+  // maps to 3 distinct game_ids here instead of 1.
   const titleToId: Record<string, string> = {
     'Phishing Simulator': 'phishing',
     'Vishing Simulator': 'vishing',
     'CyberGuard: Office Security': '3d-office',
     'CyberForge': 'cyberforge',
-    'Cyber Carnival: Threat Hunt': 'carnival-shooter',
+    'Cyber Carnival: Threat Hunt — Easy': 'carnival-shooter-easy',
+    'Cyber Carnival: Threat Hunt — Medium': 'carnival-shooter-medium',
+    'Cyber Carnival: Threat Hunt — Legendary': 'carnival-shooter-legendary',
+    'Operation Human Firewall': 'human-firewall',
   };
 
   const completedGames = new Set<string>();
@@ -81,12 +95,24 @@ export async function checkAndAwardBadges(
         .in('id', moduleIds);
 
       for (const module of modulesData ?? []) {
-        const gameId = titleToId[module.title];
+        const cleanTitle = String(module.title ?? '').replace(/^\[Game\]\s*/, '');
+        const gameId = titleToId[cleanTitle];
         if (gameId) {
           completedGames.add(gameId);
         }
       }
     }
+  }
+
+  // GAMES (games.config.ts) still lists a single 'carnival-shooter' id — keep
+  // that id valid for any badge/criteria keyed on it (e.g. 'all_games_completed')
+  // by deriving it once all 3 difficulty levels have been cleared.
+  if (
+    completedGames.has('carnival-shooter-easy') &&
+    completedGames.has('carnival-shooter-medium') &&
+    completedGames.has('carnival-shooter-legendary')
+  ) {
+    completedGames.add('carnival-shooter');
   }
 
   for (const badge of badges || []) {

@@ -41,6 +41,7 @@ export class GameOverScene extends Phaser.Scene {
                 shotsHit:      s.shotsHit      || 0,
                 friendlyFire:  s.friendlyFire  || 0,
                 grade:         (s.grade && s.grade.label) || 'D',
+                level:         s.level         || 'medium',
             }, window.location.origin || '*');
         }
         // ──────────────────────────────────────────────────────────────────────
@@ -182,7 +183,7 @@ export class GameOverScene extends Phaser.Scene {
                 try { this.sound.play('sfx_confirm', { volume: 0.5 }); } catch(e) {}
                 window.__sagpCarnivalResultSent = false; // allow re-submission
                 this.cameras.main.fadeOut(400, 0, 0, 0);
-                this.time.delayedCall(400, () => this.scene.start('GameScene'));
+                this.time.delayedCall(400, () => this.scene.start('GameScene', { level: this.summary.level || 'medium' }));
             });
             this._makeButton(W/2, 618, 230, 52, '◀ MORE GAMES', '#ff00ff', () => {
                 try { this.sound.play('sfx_click', { volume: 0.5 }); } catch(e) {}
@@ -195,6 +196,7 @@ export class GameOverScene extends Phaser.Scene {
                         type: 'GAME_COMPLETE',
                         score: this.summary.score || 0,
                         maxScore, passed,
+                        level: this.summary.level || 'medium',
                     }, window.location.origin || '*');
                 }
             });
@@ -209,6 +211,7 @@ export class GameOverScene extends Phaser.Scene {
                         type: 'GAME_COMPLETE',
                         score: this.summary.score || 0,
                         maxScore, passed,
+                        level: this.summary.level || 'medium',
                     }, window.location.origin || '*');
                 }
             });
@@ -216,7 +219,7 @@ export class GameOverScene extends Phaser.Scene {
             this._makeButton(W/2 - 140, 618, 250, 52, '► PLAY AGAIN', '#00ff88', () => {
                 try { this.sound.play('sfx_confirm', { volume: 0.5 }); } catch(e) {}
                 this.cameras.main.fadeOut(400, 0, 0, 0);
-                this.time.delayedCall(400, () => this.scene.start('GameScene'));
+                this.time.delayedCall(400, () => this.scene.start('GameScene', { level: this.summary.level || 'medium' }));
             });
 
             this._makeButton(W/2 + 140, 618, 250, 52, '◀ MAIN MENU', '#ff00ff', () => {

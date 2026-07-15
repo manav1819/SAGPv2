@@ -16,6 +16,16 @@
  *      RiskScoreExplanation object so the calculation is reconstructible.
  *   3. formula_version is stamped on every persisted record so re-tunes do
  *      not corrupt historical comparability.
+ *
+ * DO NOT feed game_sessions.score or game_sessions.normalized_score into
+ * this engine. Those are gamification-layer point totals (leaderboard/badge
+ * scale, see supabase/migrations/20260715000000_normalized_game_scores.sql)
+ * and mix reaction-based games (CyberCarnival) with knowledge-based ones
+ * (CyberForge) on a single arbitrary point scale — exactly the kind of
+ * conflation this engine is designed to avoid. Risk signal here comes only
+ * from game_events (per-question is_correct / reaction_ms) and
+ * phishing_events (per-event severity), which measure real behavior
+ * independent of any game's point economy.
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/server';

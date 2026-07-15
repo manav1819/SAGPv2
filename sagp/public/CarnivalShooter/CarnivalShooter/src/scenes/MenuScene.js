@@ -107,34 +107,64 @@ export class MenuScene extends Phaser.Scene {
             }).setOrigin(0.5);
         }
 
-        // ── Play button ───────────────────────────────────────────────────────
-        const btnG = this.add.graphics();
-        const drawBtn = (hover) => {
-            btnG.clear();
-            btnG.fillStyle(hover ? 0x4400aa : 0x220066, hover ? 1 : 0.9);
-            btnG.lineStyle(hover ? 3 : 2, 0xff00ff, 1);
-            btnG.fillRoundedRect(W/2 - 140, 580, 280, 65, 10);
-            btnG.strokeRoundedRect(W/2 - 140, 580, 280, 65, 10);
-        };
-        drawBtn(false);
-
-        const btnTxt = this.add.text(W/2, 612, '► START HUNT', {
+        // ── Difficulty select ────────────────────────────────────────────────
+        // Replaces the old single "START HUNT" button. Each button starts
+        // GameScene with { level }, which flows into DifficultySystem and is
+        // reported back in the GAME_COMPLETE payload for badge-awarding.
+        this.add.text(W/2, 552, '► SELECT DIFFICULTY', {
             fontFamily: '"Courier New", monospace',
-            fontSize: '28px', fontStyle: 'bold', color: '#ff00ff',
-            shadow: { blur: 16, color: '#ff00ff', fill: true },
+            fontSize: '18px', fontStyle: 'bold', color: '#aa88ff',
+            shadow: { blur: 10, color: '#aa88ff', fill: true },
         }).setOrigin(0.5);
 
-        const btnZone = this.add.zone(W/2, 612, 280, 65).setInteractive();
-        btnZone.on('pointerover', () => { drawBtn(true); btnTxt.setScale(1.05); try { this.sound.play('sfx_click', { volume: 0.4 }); } catch(e){} });
-        btnZone.on('pointerout',  () => { drawBtn(false); btnTxt.setScale(1); });
-        btnZone.on('pointerdown', () => {
-            try { this.sound.play('sfx_confirm', { volume: 0.6 }); } catch(e){}
-            this.cameras.main.fadeOut(400, 0, 0, 0);
-            this.time.delayedCall(400, () => this.scene.start('GameScene'));
-        });
+        const LEVELS = [
+            { id: 'easy',      label: 'EASY',      sub: 'Fewer targets · slower',  hex: '#00ff88', color: 0x00ff88 },
+            { id: 'medium',    label: 'MEDIUM',    sub: 'Balanced challenge',      hex: '#00ffff', color: 0x00ffff },
+            { id: 'legendary', label: 'LEGENDARY', sub: 'Swarms · high speed',     hex: '#ff2222', color: 0xff2222 },
+        ];
 
-        // Pulsing button
-        this.tweens.add({ targets: btnTxt, alpha: 0.7, duration: 800, yoyo: true, repeat: -1 });
+        const btnW = 220, btnH = 68, gap = 24;
+        const totalW = LEVELS.length * btnW + (LEVELS.length - 1) * gap;
+        const startX = W/2 - totalW/2 + btnW/2;
+
+        LEVELS.forEach((lvl, i) => {
+            const cx = startX + i * (btnW + gap);
+            const cy = 618;
+
+            const g = this.add.graphics();
+            const drawLevelBtn = (hover) => {
+                g.clear();
+                g.fillStyle(hover ? lvl.color : 0x110022, hover ? 0.35 : 0.85);
+                g.lineStyle(hover ? 3 : 2, lvl.color, 1);
+                g.fillRoundedRect(cx - btnW/2, cy - btnH/2, btnW, btnH, 10);
+                g.strokeRoundedRect(cx - btnW/2, cy - btnH/2, btnW, btnH, 10);
+            };
+            drawLevelBtn(false);
+
+            const labelTxt = this.add.text(cx, cy - 10, lvl.label, {
+                fontFamily: '"Courier New", monospace',
+                fontSize: '20px', fontStyle: 'bold', color: lvl.hex,
+                shadow: { blur: 12, color: lvl.hex, fill: true },
+            }).setOrigin(0.5);
+
+            this.add.text(cx, cy + 17, lvl.sub, {
+                fontFamily: '"Courier New", monospace', fontSize: '10px', color: '#aaaaaa',
+            }).setOrigin(0.5);
+
+            const zone = this.add.zone(cx, cy, btnW, btnH).setInteractive();
+            zone.on('pointerover', () => {
+                drawLevelBtn(true); labelTxt.setScale(1.05);
+                try { this.sound.play('sfx_click', { volume: 0.4 }); } catch(e){}
+            });
+            zone.on('pointerout', () => { drawLevelBtn(false); labelTxt.setScale(1); });
+            zone.on('pointerdown', () => {
+                try { this.sound.play('sfx_confirm', { volume: 0.6 }); } catch(e){}
+                this.cameras.main.fadeOut(400, 0, 0, 0);
+                this.time.delayedCall(400, () => this.scene.start('GameScene', { level: lvl.id }));
+            });
+
+            this.tweens.add({ targets: labelTxt, alpha: 0.75, duration: 900 + i * 150, yoyo: true, repeat: -1 });
+        });
 
         // ── Mute button ───────────────────────────────────────────────────────
         const muteBtn = this.add.text(W - 30, 30, '🔊', { fontSize: '24px' })

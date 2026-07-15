@@ -102,6 +102,10 @@ export interface GameSession {
   org_id: string;
   status: SessionStatus;
   score: number | null;
+  /** Raw score rescaled to 0-1000 using the maxScore this session reported.
+   *  Used for cross-game leaderboard/badge aggregation only — never by the
+   *  risk engine. See supabase/migrations/20260715000000_normalized_game_scores.sql. */
+  normalized_score: number | null;
   passed: boolean | null;
   time_bucket: TimeBucket | null;
   time_taken_seconds: number | null;
