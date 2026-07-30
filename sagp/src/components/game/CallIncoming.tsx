@@ -1,14 +1,26 @@
 'use client';
 
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, PhoneOff, Shield, AlertTriangle } from 'lucide-react';
 import { useGameStore } from '@/lib/stores/useGameStore';
 import { getScenario } from '@/data/scenarios';
+import { useCallTones } from '@/lib/hooks/useCallTones';
 
 export function CallIncoming() {
   const { call, acceptCall, rejectCall } = useGameStore();
   const scenario = call.scenarioId ? getScenario(call.scenarioId) : null;
   const isIncoming = call.status === 'incoming';
+  const { startRingtone, stopRingtone } = useCallTones();
+
+  // Ring for as long as the call is incoming; stop the moment it's
+  // accepted, rejected, or the component unmounts.
+  useEffect(() => {
+    if (isIncoming) startRingtone();
+    else stopRingtone();
+    return () => stopRingtone();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isIncoming]);
 
   return (
     <AnimatePresence>

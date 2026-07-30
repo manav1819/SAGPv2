@@ -40,6 +40,8 @@ function GameContent({ scenarioId }: { scenarioId: string }) {
   const prevPhase = useRef(phase);
 
   useEffect(() => {
+    const changedPhase = prevPhase.current !== phase;
+
     if (phase === 'results') {
       // Scenario is complete — nothing left to resume. Clear the save
       // instead of leaving a stale "finished" snapshot behind.
@@ -48,10 +50,17 @@ function GameContent({ scenarioId }: { scenarioId: string }) {
       return;
     }
 
+    if (changedPhase && phase === 'lobby') {
+      // The incoming call was rejected — there's nothing left to show on
+      // this scenario page, so send the player back to the lobby instead
+      // of leaving them staring at a dead "Awaiting incoming call..." screen.
+      router.push('/game/human-firewall');
+    }
+
     // Save immediately on every phase transition (call accepted, choice
     // made, escalation, etc.) — the 15s interval alone only covers "every
     // few seconds", not "the moment something important happened".
-    if (prevPhase.current !== phase) {
+    if (changedPhase) {
       prevPhase.current = phase;
       void saveNow();
     }

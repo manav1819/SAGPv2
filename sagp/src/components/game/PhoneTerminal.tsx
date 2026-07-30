@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Phone, ShieldCheck } from 'lucide-react';
-import { useGameStore, useCallState, useGamePhase } from '@/lib/stores/useGameStore';
+import { useGameStore, useCallState, useGamePhase, useTerminalConfig } from '@/lib/stores/useGameStore';
 import { useScenario } from '@/lib/hooks/useScenario';
+import { useAudio } from '@/lib/hooks/useAudio';
+import { useCallTones } from '@/lib/hooks/useCallTones';
 import { DialogueDisplay } from './DialogueDisplay';
 import { ChoicePanel } from './ChoicePanel';
 import { CallControls } from './CallControls';
@@ -24,7 +26,10 @@ export function PhoneTerminal({ scenarioId }: Props) {
   const { acceptCall, advanceToNode, endCall, tickElapsed } = useGameStore();
   const call = useCallState();
   const phase = useGamePhase();
+  const terminalConfig = useTerminalConfig();
   const { scenario, currentNode, startScenario, handleChoice, advanceTo } = useScenario(scenarioId);
+  const { playNode, pause: pauseAudio, resume: resumeAudio, stop: stopAudio } = useAudio();
+  const { playEndTone } = useCallTones();
 
   // Boot: trigger incoming call
   useEffect(() => {
@@ -47,6 +52,56 @@ export function PhoneTerminal({ scenarioId }: Props) {
     const id = setInterval(tickElapsed, 1000);
     return () => clearInterval(id);
   }, [call.status, tickElapsed]);
+
+  // Voice audio — play the current dialogue node's spoken line (pre-recorded
+  // asset if the scenario provides one, otherwise text-to-speech) so an
+  // answered call sounds like a real conversation instead of static text.
+  // Only the caller's own lines are voiced — system/wrap-up text (e.g. the
+  // "incident reported" summary) is narration *about* the call, not part of
+  // it, and speaking it was what made TTS audibly bleed past the call ending.
+  useEffect(() => {
+    if (
+      call.status !== 'active' ||
+      !currentNode ||
+      currentNode.speaker !== 'attacker' ||
+      !terminalConfig.autoPlayAudio
+    ) return;
+    playNode(currentNode, scenarioId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentNode?.id, call.status, terminalConfig.autoPlayAudio]);
+
+  // Putting the call on hold should pause the simulated call audio (mute
+  // only silences the player's own mic, not what they hear). Only react to
+  // actual hold/resume transitions — calling AudioManager.resume() on every
+  // render while already playing would spawn duplicate rAF loops.
+  const prevOnHold = useRef(call.isOnHold);
+  useEffect(() => {
+    if (prevOnHold.current !== call.isOnHold) {
+      if (call.isOnHold) pauseAudio();
+      else if (call.status === 'active') resumeAudio();
+    }
+    prevOnHold.current = call.isOnHold;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [call.isOnHold, call.status]);
+
+  // Stop any in-flight audio the moment the call is no longer active, and —
+  // for a call that was actually connected (not just rejected while
+  // ringing) — play a three-beep end tone. Guarded to the actual
+  // active/held → over transition so it fires exactly once, not on every
+  // re-render while the call stays ended.
+  const prevCallStatus = useRef(call.status);
+  useEffect(() => {
+    const wasConnected = prevCallStatus.current === 'active' || prevCallStatus.current === 'held';
+    const isOver = call.status === 'ended' || call.status === 'transferred' || call.status === 'escalated';
+    if (isOver) {
+      stopAudio();
+      if (wasConnected && prevCallStatus.current !== call.status) {
+        playEndTone();
+      }
+    }
+    prevCallStatus.current = call.status;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [call.status]);
 
   // Auto-advance terminal nodes
   useEffect(() => {

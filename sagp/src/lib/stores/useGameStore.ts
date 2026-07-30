@@ -31,6 +31,9 @@ export const XP_TABLE = {
   LEAK_CORE_PASSWORD: -1000,
   IGNORE_OBVIOUS_RED_FLAG: -100,
   FALL_FOR_SCAM: -750,
+  // Reject Call handling
+  REJECT_SUSPICIOUS_CALL: 25,
+  REJECT_CALL_UNREPORTED: -75,
 } as const;
 
 export const RANK_THRESHOLDS: { rank: PlayerRank; minXP: number }[] = [
@@ -90,7 +93,7 @@ const defVoice = (): VoiceRecognitionState => ({
 
 const defConfig = (): PhoneTerminalConfig => ({
   showSubtitles: true, voiceInputEnabled: false, hintsEnabled: true,
-  autoPlayAudio: false, screenShakeEnabled: true,
+  autoPlayAudio: true, screenShakeEnabled: true,
 });
 
 // ---------------------------------------------------------------------------
@@ -205,11 +208,24 @@ export const useGameStore = create<GameStore>()(
         timeline: [...s.timeline, mkEvent('call_accepted', 0, 'Call accepted')],
       })),
 
-      rejectCall: () => set((s) => ({
-        call: { ...s.call, status: 'ended' },
-        phase: 'lobby',
-        timeline: [...s.timeline, mkEvent('call_rejected', 0, 'Call rejected')],
-      })),
+      rejectCall: () => {
+        set((s) => ({
+          call: { ...s.call, status: 'ended' },
+          phase: 'lobby',
+          timeline: [...s.timeline, mkEvent(
+            'call_rejected',
+            0,
+            'Call rejected — not reported to IT',
+            {},
+            XP_TABLE.REJECT_SUSPICIOUS_CALL + XP_TABLE.REJECT_CALL_UNREPORTED,
+          )],
+        }));
+        // Declining to answer a suspicious call is a reasonable instinct, so it's
+        // rewarded — but the call was never reported to IT/security, so that
+        // (larger) penalty is applied too. Net effect: partial credit.
+        get().applyXP(XP_TABLE.REJECT_SUSPICIOUS_CALL, 'Avoided answering a suspicious call', 'reject_call');
+        get().applyXP(XP_TABLE.REJECT_CALL_UNREPORTED, 'Call rejected without reporting to IT', 'reject_call');
+      },
 
       toggleMute: () => set((s) => ({
         call: { ...s.call, isMuted: !s.call.isMuted },
