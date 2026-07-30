@@ -217,7 +217,7 @@ const ELEMENTS={
   cyberwar:{name:'Cyberwarfare',emoji:'⚔️',tier:6,category:'Attack',desc:'State-sponsored offensive cyber operations targeting critical national infrastructure.',info:'Cyberwarfare targets power grids, water systems, financial networks, and communications. The Tallinn Manual guides international law on cyber conflict.'},
 };
 
-const RECIPES={
+const RECIPES_RAW={
   'device+user':'endpoint',
   'device+network':'server',
   'device+credential':'encryption',
@@ -320,6 +320,16 @@ const RECIPES={
   'rootkit+network':'c2',
   'c2+server':'nationstate',
 };
+
+// Normalise every recipe key to match recipeKey()'s sort order, regardless
+// of the order ingredients were typed above. This fixes lookups for any
+// recipe authored as e.g. 'device+credential' when recipeKey() would query
+// 'credential+device'.
+const RECIPES={};
+for(const key in RECIPES_RAW){
+  const sortedKey=key.split('+').sort().join('+');
+  RECIPES[sortedKey]=RECIPES_RAW[key];
+}
 
 const XP_TABLE={0:0,1:10,2:25,3:50,4:75,5:100,6:150};
 const TOTAL=Object.keys(ELEMENTS).length;
