@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck } from 'lucide-react';
+import Image from 'next/image';
 import { joinOrganizationByCode } from '@/lib/auth/actions';
 
 /**
@@ -48,7 +48,7 @@ export default function CompleteProfilePage() {
     <div className="sagp-card sagp-card-glow w-full p-8">
       <div className="mb-8 flex flex-col items-center gap-2">
         <div className="sagp-brand-mark h-12 w-12">
-          <ShieldCheck className="h-6 w-6" />
+          <Image src="/sagp-logo.png" alt="SAGP" width={24} height={24} className="h-6 w-6 object-contain" />
         </div>
         <h1 className="sagp-heading-2 sagp-neon-text">Complete Your Profile</h1>
         <p className="sagp-text-muted text-sm">Enter your name and your organisation's join code.</p>

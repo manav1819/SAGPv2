@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { flushActiveGameSave } from '@/lib/game-save/activeGameSaveRegistry';
@@ -13,7 +14,6 @@ import {
   Flame,
   Swords,
   Gamepad2,
-  ShieldCheck,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -58,7 +58,7 @@ export function EmployeeSidebar({
       <div className="sagp-topbar-inner">
         <Link href="/dashboard" className="sagp-brand shrink-0">
           <div className="sagp-brand-mark">
-            <ShieldCheck className="h-5 w-5" />
+            <Image src="/sagp-logo.png" alt="SAGP" width={26} height={32} className="h-8 w-auto object-contain" />
           </div>
           <span className="sagp-brand-text sagp-neon-text">SAGP</span>
         </Link>

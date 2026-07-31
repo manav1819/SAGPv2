@@ -2,9 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Building, Users, LogOut, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Building, Users, LogOut } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/superadmin/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -31,7 +32,7 @@ export function SuperadminSidebar() {
       <div className="sagp-topbar-inner">
         <Link href="/superadmin/dashboard" className="sagp-brand shrink-0">
           <div className="sagp-brand-mark">
-            <ShieldCheck className="h-5 w-5" />
+            <Image src="/sagp-logo.png" alt="SAGP" width={26} height={32} className="h-8 w-auto object-contain" />
           </div>
           <span className="sagp-brand-text sagp-neon-text">SAGP</span>
           <span className="sagp-badge sagp-badge-purple">Superadmin</span>

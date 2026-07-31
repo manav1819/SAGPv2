@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck } from 'lucide-react';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 /**
@@ -35,7 +35,7 @@ export default function SSOCallbackPage() {
     <div className="sagp-card sagp-card-glow w-full p-8 text-center">
       <div className="mb-6 flex justify-center">
         <div className="sagp-brand-mark h-12 w-12 animate-pulse">
-          <ShieldCheck className="h-6 w-6" />
+          <Image src="/sagp-logo.png" alt="SAGP" width={24} height={24} className="h-6 w-6 object-contain" />
         </div>
       </div>
       <h2 className="sagp-heading-3 sagp-neon-text mb-2">Completing Sign-In…</h2>

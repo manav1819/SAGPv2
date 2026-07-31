@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck } from 'lucide-react';
+import Image from 'next/image';
 import { signInWithEmail, signInWithSSO, signInWithMagicLink } from '@/lib/auth/actions';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -114,7 +114,7 @@ export default function LoginPage() {
       {/* Brand */}
       <div className="mb-8 flex flex-col items-center gap-2">
         <div className="sagp-brand-mark h-12 w-12">
-          <ShieldCheck className="h-6 w-6" />
+          <Image src="/sagp-logo.png" alt="SAGP" width={24} height={24} className="h-6 w-6 object-contain" />
         </div>
         <h1 className="sagp-heading-2 sagp-neon-text">SAGP</h1>
         <p className="sagp-text-muted text-sm">Security Awareness Gamification Platform</p>
